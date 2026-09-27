@@ -1,6 +1,4 @@
-/**
- * History list logic — pure functions only.
- */
+/** History list logic — pure functions only. */
 
 import { UI_LOCALE } from "./utils.ts";
 
@@ -68,21 +66,4 @@ export function formatVisitStamp(
     return `${h}:${m}`;
   }
   return date.toLocaleDateString(UI_LOCALE, { month: "short", day: "numeric" });
-}
-
-/**
- * The detail view's "last visited". Keeps the year where the welcome pane's
- * `formatDate` drops it: that line is glanced at dozens of times a day, this
- * one is opened deliberately and read once, so "which year" is information here
- * rather than noise.
- */
-export function formatFullTimestamp(timestamp: number | undefined): string {
-  if (!timestamp) return "—";
-  return new Date(timestamp).toLocaleString(UI_LOCALE, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }

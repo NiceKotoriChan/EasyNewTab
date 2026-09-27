@@ -1,10 +1,8 @@
 /**
- * Unit tests for the history timestamps.
+ * Unit tests for the history timestamp shown on a history row.
  *
- * The two formatters disagree about the year on purpose, so both directions are
- * pinned: the row stamp drops it, the detail stamp keeps it. The last test is
- * the one that guards the shared decision — that neither follows the browser's
- * locale — and it needs a second process to do it, because Node fixes its
+ * The last test guards the shared decision — that the output does not follow the
+ * browser's locale — and it needs a second process to do it, because Node fixes its
  * default locale at startup and ignores later writes to `process.env`.
  */
 
@@ -13,7 +11,7 @@ import { execFileSync } from "node:child_process";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { formatFullTimestamp, formatVisitStamp } from "../src/core/history.ts";
+import { formatVisitStamp } from "../src/core/history.ts";
 
 /** A fixed "now", so the today/older split does not drift with the calendar. */
 const NOW = new Date(2026, 8, 25, 14, 5).getTime();
@@ -33,20 +31,15 @@ test("a missing visit time is blank, not \"Invalid Date\"", () => {
   assert.equal(formatVisitStamp(undefined, NOW), "");
 });
 
-test("the detail timestamp keeps the year the row stamp drops", () => {
-  assert.equal(formatFullTimestamp(OLDER), "Aug 29, 2026, 02:05 PM");
-  assert.equal(formatFullTimestamp(undefined), "—");
-});
-
-test("both timestamps stay English under a non-English host locale", () => {
+test("the stamp stays English under a non-English host locale", () => {
   // The locale is printed next to the output so this cannot pass vacuously —
   // if `LC_ALL` ever stopped taking effect, the prefix changes and says so.
   const script = [
-    'import { formatVisitStamp, formatFullTimestamp } from "./src/core/history.ts";',
+    'import { formatVisitStamp } from "./src/core/history.ts";',
     "const locale = Intl.DateTimeFormat().resolvedOptions().locale;",
     "const older = new Date(2026, 7, 29, 14, 5).getTime();",
     "const at = new Date(2026, 8, 25, 14, 5).getTime();",
-    "process.stdout.write(`${locale}|${formatVisitStamp(older, at)}|${formatFullTimestamp(older)}`);",
+    "process.stdout.write(`${locale}|${formatVisitStamp(older, at)}`);",
   ].join("\n");
 
   const stdout = execFileSync(
@@ -59,5 +52,5 @@ test("both timestamps stay English under a non-English host locale", () => {
     },
   );
 
-  assert.equal(stdout, "zh-CN|Aug 29|Aug 29, 2026, 02:05 PM");
+  assert.equal(stdout, "zh-CN|Aug 29");
 });
