@@ -6,7 +6,6 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  # 不取消正在运行的 tag 发布
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 permissions:
