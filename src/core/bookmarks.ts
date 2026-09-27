@@ -62,8 +62,8 @@ export function visibleTopLevelNodes(
     : roots.filter((node) => node.id !== OTHER_BOOKMARKS_ID);
 }
 
-/** The first top-level folder — the parent for empty-area "New folder". Reads the
- *  *raw* tree so hiding "Other bookmarks" cannot move the target. */
+/** The first top-level folder — the parent the blank-space "New" makes into. Reads
+ *  the *raw* tree so hiding "Other bookmarks" cannot move the target. */
 export function pickRootFolderId(tree: readonly BookmarkNode[]): string | null {
   const roots = topLevelNodes(tree);
   return roots[0]?.id ?? null;

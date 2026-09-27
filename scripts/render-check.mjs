@@ -959,12 +959,12 @@ try {
   const actions = (items) => items.map((item) => item.action).join(",");
   expectEqual(
     actions(menus.folderMenu()),
-    "new-folder,rename,delete",
+    "new,rename,delete",
     "a folder row's menu is make/rename/remove — no detail entry, and no divider between them",
   );
   expectEqual(
     actions(menus.emptyTreeMenu()),
-    "new-folder",
+    "new",
     "and the blank space under the tree makes a top-level folder",
   );
   // The rows that must NOT have a menu. `Details` would come back through one of these
@@ -986,9 +986,16 @@ try {
   expect(treeSource, "useLongPress(", "the tree reaches its menus by long press as well as by right-click");
   expect(treeSource, "@contextmenu", "and keeps the right-click the long press stands in for");
   expect(treeSource, "folderMenu()", "but only a folder row is offered one");
+  // The other half of the seam: a menu is data and the switch that consumes it is
+  // matched by string, so the two can drift apart with nothing to notice. An action
+  // handed out with no `case` to catch it is a row that opens and then does nothing,
+  // which is what happened to `new` before it was spelled the same on both sides.
+  for (const { action } of menus.folderMenu()) {
+    expect(treeSource, `case "${action}"`, `the tree branches on the "${action}" its menu offers`);
+  }
   // The blank-space menu is the exception, and it is the one that goes through
   // `isFolderNode` first — so the guard is what makes a right-click on a
-  // *bookmark* open nothing at all instead of falling through to "New folder".
+  // *bookmark* open nothing at all instead of falling through to "New".
   expect(treeSource, "if (!isFolderNode(node)) return;", "a bookmark row's right-click opens nothing rather than the blank-space menu");
 
   const historySource = await readSource(

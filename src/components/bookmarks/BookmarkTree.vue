@@ -140,7 +140,7 @@ async function deleteNode(node: BookmarkNode): Promise<void> {
 function nodeContextMenu(x: number, y: number, node: BookmarkNode): void {
   // Only a folder has a menu. A bookmark row still stops the event (see `BookmarkNode`),
   // so a right-click on one opens nothing rather than falling through to the
-  // blank-space menu — "New folder" under a bookmark would be an odd thing to offer.
+  // blank-space menu — "New" under a bookmark would be an odd thing to offer.
   if (!isFolderNode(node)) return;
   openMenu(x, y, folderMenu(), (action) => void handleNodeAction(action, node));
 }
@@ -182,7 +182,7 @@ const longPress = useLongPress((x, y) => {
 
 async function handleNodeAction(action: string, node: BookmarkNode): Promise<void> {
   switch (action) {
-    case "new-folder": {
+    case "new": {
       const name = prompt("Folder name:");
       if (!name) return;
       await createFolder(node.id, name);

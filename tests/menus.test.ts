@@ -19,16 +19,16 @@ import { emptyTreeMenu, folderMenu } from "../src/core/menus.ts";
 /** Every action either menu may hand out. Adding one is a deliberate act, so it has to be
  *  added here too — this allowlist is what keeps an action from being reintroduced
  *  without a decision. */
-const ALLOWED_ACTIONS = ["new-folder", "rename", "delete"];
+const ALLOWED_ACTIONS = ["new", "rename", "delete"];
 
 test("a folder row offers make, rename, remove — in the order the work happens", () => {
   assert.deepEqual(
     folderMenu().map((item) => item.action),
-    ["new-folder", "rename", "delete"],
+    ["new", "rename", "delete"],
   );
   assert.deepEqual(
     folderMenu().map((item) => item.label),
-    ["New folder", "Rename", "Delete"],
+    ["New", "Rename", "Delete"],
   );
 });
 
@@ -48,7 +48,7 @@ test("delete is the dangerous one, and it is last", () => {
 test("the blank space under the tree makes a top-level folder", () => {
   assert.deepEqual(
     emptyTreeMenu().map((item) => item.action),
-    ["new-folder"],
+    ["new"],
   );
   // Creating one is not destructive, so it is not painted as though it were.
   assert.equal(emptyTreeMenu()[0].danger, undefined);

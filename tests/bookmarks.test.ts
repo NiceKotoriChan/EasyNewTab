@@ -271,7 +271,7 @@ test("visibleTopLevelNodes hides only Chrome's Other bookmarks folder", () => {
     visibleTopLevelNodes(tree, false).map((n) => n.id),
     ["1", "3"],
   );
-  // Hiding it must not move the empty-area "New folder" target.
+  // Hiding it must not move the blank-space "New" target.
   assert.equal(pickRootFolderId(tree), "1");
 });
 

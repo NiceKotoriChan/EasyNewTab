@@ -15,7 +15,7 @@ export interface MenuItem {
  *  actions on one folder are one group, not two. */
 export function folderMenu(): MenuItem[] {
   return [
-    { label: "New folder", action: "new-folder" },
+    { label: "New", action: "new" },
     { label: "Rename", action: "rename" },
     { label: "Delete", action: "delete", danger: true },
   ];
@@ -23,5 +23,5 @@ export function folderMenu(): MenuItem[] {
 
 /** The blank space under the tree. */
 export function emptyTreeMenu(): MenuItem[] {
-  return [{ label: "New folder", action: "new-folder" }];
+  return [{ label: "New", action: "new" }];
 }
