@@ -15,6 +15,10 @@
  * Because this page is the only writer of settings, it is also the only place a
  * failed write can be reported. `lastError` drives the alert strip at the top;
  * without it, a save that did not land looks exactly like one that did.
+ *
+ * The four tile glyph in the header is drawn in CSS rather than added to the
+ * icon set: it is the page's own mark, not a utility glyph, and every `<svg>` on
+ * this page is swept for being MDI's own path data.
  */
 import Icon from "../components/ui/Icon.vue";
 import type { IconName } from "../components/ui/mdi-icons";
@@ -55,6 +59,9 @@ function setSidebarPosition(id: SidebarPosition): void {
   <div class="options">
     <main class="content scroll">
       <header class="head">
+        <div class="brand-mark" aria-hidden="true">
+          <i /><i /><i /><i />
+        </div>
         <h1 class="brand-name">Easy New Tab</h1>
         <p class="brand-sub">Settings</p>
       </header>
@@ -79,65 +86,73 @@ function setSidebarPosition(id: SidebarPosition): void {
         </div>
 
         <section class="panel">
-          <h2 class="panel-title">General</h2>
+          <div class="panel-head">
+            <span class="panel-mark"><Icon name="settings" :size="15" /></span>
+            <h2 class="panel-title">General</h2>
+          </div>
 
-          <div class="row">
-            <div class="row-text">
-              <div class="row-label">Sidebar position</div>
-            </div>
-            <div class="row-control">
-              <div class="seg" role="group" aria-label="Sidebar position">
-                <button
-                  v-for="option in POSITIONS"
-                  :key="option.id"
-                  type="button"
-                  class="seg-item"
-                  :class="{
-                    'is-active': settings.sidebarPosition === option.id,
-                  }"
-                  :aria-pressed="settings.sidebarPosition === option.id"
-                  @click="setSidebarPosition(option.id)"
-                >
-                  <Icon :name="option.icon" :size="14" />
-                  <span>{{ option.label }}</span>
-                </button>
+          <div class="group">
+            <div class="row">
+              <div class="row-text">
+                <div class="row-label">Sidebar position</div>
+              </div>
+              <div class="row-control">
+                <div class="seg" role="group" aria-label="Sidebar position">
+                  <button
+                    v-for="option in POSITIONS"
+                    :key="option.id"
+                    type="button"
+                    class="seg-item"
+                    :class="{
+                      'is-active': settings.sidebarPosition === option.id,
+                    }"
+                    :aria-pressed="settings.sidebarPosition === option.id"
+                    @click="setSidebarPosition(option.id)"
+                  >
+                    <Icon :name="option.icon" :size="14" />
+                    <span>{{ option.label }}</span>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="row">
-            <div class="row-text">
-              <div class="row-label">Open bookmarks in a new tab</div>
+            <div class="row">
+              <div class="row-text">
+                <div class="row-label">Open bookmarks in a new tab</div>
+              </div>
+              <div class="row-control">
+                <input
+                  class="checkbox"
+                  type="checkbox"
+                  :checked="settings.openInNewTab"
+                  @change="onOpenInNewTabChange"
+                />
+              </div>
             </div>
-            <div class="row-control">
-              <input
-                class="checkbox"
-                type="checkbox"
-                :checked="settings.openInNewTab"
-                @change="onOpenInNewTabChange"
-              />
-            </div>
-          </div>
 
-          <div class="row">
-            <div class="row-text">
-              <div class="row-label">Show other bookmarks</div>
-            </div>
-            <div class="row-control">
-              <input
-                class="checkbox"
-                type="checkbox"
-                :checked="settings.showOtherBookmarks"
-                @change="onShowOtherBookmarksChange"
-              />
+            <div class="row">
+              <div class="row-text">
+                <div class="row-label">Show “Other bookmarks”</div>
+              </div>
+              <div class="row-control">
+                <input
+                  class="checkbox"
+                  type="checkbox"
+                  :checked="settings.showOtherBookmarks"
+                  @change="onShowOtherBookmarksChange"
+                />
+              </div>
             </div>
           </div>
         </section>
 
         <section class="panel">
-          <h2 class="panel-title">Shortcuts</h2>
+          <div class="panel-head">
+            <span class="panel-mark"><Icon name="keyboard" :size="15" /></span>
+            <h2 class="panel-title">Shortcuts</h2>
+          </div>
 
-          <div class="shortcuts">
+          <div class="group">
             <div v-for="item in SHORTCUTS" :key="item.keys" class="shortcut">
               <kbd>{{ item.keys }}</kbd>
               <span>{{ item.label }}</span>
@@ -163,17 +178,42 @@ function setSidebarPosition(id: SidebarPosition): void {
   /* One column, capped. A row is a label on the left and a control on the
      right, so on a 1600px window an uncapped column would turn the distance
      between the two into a foot of empty space. */
-  max-width: 720px;
-  padding: 26px 30px;
+  max-width: 660px;
+  padding: 26px 30px 30px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
 }
 
+/* Mark + name on the left, the page's own name pushed to the right as a chip —
+   a title bar rather than a stack of two lines. */
 .head {
-  padding-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding-bottom: 18px;
   border-bottom: 1px solid var(--border);
+}
+
+/* The mark is four tiles because the product is a tile grid. Drawn with CSS so
+   the MDI sweep on this page stays a check on the icon set only. */
+.brand-mark {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2px;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  padding: 5px;
+  background: var(--accent);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+}
+
+.brand-mark i {
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 1.5px;
 }
 
 .brand-name {
@@ -185,28 +225,67 @@ function setSidebarPosition(id: SidebarPosition): void {
 }
 
 .brand-sub {
-  margin: 3px 0 0;
-  font-size: 11px;
+  margin: 0 0 0 auto;
+  padding: 2px 9px;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
   color: var(--text-muted);
+  background: var(--inset);
+  border-radius: var(--radius-full);
 }
 
 .panel {
-  margin-top: 22px;
+  margin-top: 24px;
 }
 
-/* Both sections are on one page now, so the second is separated by a rule
-   instead of by a page break. */
+/* Two sections on one page. The mark and the space do the separating now, so
+   the rule that used to run between them is gone. */
 .panel + .panel {
-  margin-top: 30px;
-  padding-top: 26px;
-  border-top: 1px solid var(--border);
+  margin-top: 32px;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 10px;
+}
+
+.panel-mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: var(--radius-sm);
+}
+
+.panel-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--text);
+}
+
+/* Rows live in one bordered container rather than floating on the card: the
+   outline is what says "these belong together", and it gives the hover wash
+   somewhere to stop. */
+.group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
 }
 
 /* Only rendered when a write actually failed, so it is allowed to be loud. */
 .failed {
   display: flex;
   gap: 10px;
-  margin: 20px 0;
+  margin: 20px 0 0;
   padding: 12px 14px;
   background: var(--danger-soft);
   border-left: 3px solid var(--danger);
@@ -238,24 +317,21 @@ function setSidebarPosition(id: SidebarPosition): void {
   color: var(--text-dim);
 }
 
-.panel-title {
-  margin: 0 0 6px;
-  font-size: 17px;
-  font-weight: 500;
-  letter-spacing: -0.2px;
-}
-
 .row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--border);
+  padding: 13px 16px;
+  transition: background var(--dur) var(--ease);
 }
 
-.row:last-child {
-  border-bottom: 0;
+.row + .row {
+  border-top: 1px solid var(--border);
+}
+
+.row:hover {
+  background: var(--hover-bg);
 }
 
 .row-text {
@@ -264,7 +340,8 @@ function setSidebarPosition(id: SidebarPosition): void {
 }
 
 .row-label {
-  font-size: 12.5px;
+  font-size: 13px;
+  color: var(--text);
 }
 
 .row-control {
@@ -274,10 +351,44 @@ function setSidebarPosition(id: SidebarPosition): void {
   flex: none;
 }
 
+/* The checkbox is only the state; the visible control is the track and the knob
+   drawn on top of it. */
 .checkbox {
-  width: 14px;
-  height: 14px;
-  accent-color: var(--accent);
+  position: relative;
+  flex: none;
+  width: 36px;
+  height: 21px;
+  margin: 0;
+  appearance: none;
+  background: var(--inset);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition:
+    background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+
+.checkbox::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 15px;
+  height: 15px;
+  background: var(--surface);
+  border-radius: 50%;
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--dur) var(--ease);
+}
+
+.checkbox:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.checkbox:checked::after {
+  transform: translateX(15px);
 }
 
 /* Two-option segmented control: the same "inset track + raised pill" language
@@ -285,7 +396,7 @@ function setSidebarPosition(id: SidebarPosition): void {
    same wherever it shows up. */
 .seg {
   display: inline-flex;
-  gap: 2px;
+  gap: 3px;
   padding: 3px;
   background: var(--inset);
   border-radius: var(--radius-md);
@@ -295,8 +406,8 @@ function setSidebarPosition(id: SidebarPosition): void {
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 28px;
-  padding: 0 12px;
+  height: 30px;
+  padding: 0 14px;
   border-radius: var(--radius-sm);
   color: var(--text-dim);
   font-size: 12.5px;
@@ -313,32 +424,42 @@ function setSidebarPosition(id: SidebarPosition): void {
   box-shadow: var(--shadow-xs);
 }
 
-.shortcuts {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 8px;
-}
-
+/* A key column and a description column, so every description starts at the
+   same x even though the keys are one to three characters wide. */
 .shortcut {
-  display: flex;
+  display: grid;
+  grid-template-columns: 78px 1fr;
   align-items: center;
   gap: 14px;
-  padding: 7px 0;
+  padding: 10px 16px;
   font-size: 12.5px;
   color: var(--text-dim);
+  transition: background var(--dur) var(--ease);
 }
 
+.shortcut + .shortcut {
+  border-top: 1px solid var(--border);
+}
+
+.shortcut:hover {
+  background: var(--hover-bg);
+}
+
+/* Keycap: set in the mono face, sized to its own label, and given one extra
+   pixel of bottom border so it reads as something you press. */
 kbd {
-  min-width: 118px;
-  padding: 3px 9px;
-  font-family: var(--font-ui);
-  font-size: 11.5px;
+  justify-self: start;
+  min-width: 30px;
+  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
   text-align: center;
   color: var(--text);
   background: var(--inset);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
   box-shadow: var(--shadow-xs);
 }
 </style>
