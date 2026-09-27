@@ -3,20 +3,17 @@
  * The most-visited row: up to eight sites, under the search box.
  *
  * The tile is Chromium's own (`cr-most-visited`) — 112px tile, 48px circle, 24px
- * favicon, 12px label — so "the same as Chrome" stays checkable against its
- * source instead of against memory. Two deliberate differences: the grid is two
- * rows of four rather than one reflowing line (this pane is 620px, where a fifth
- * column would fold eight sites into an uneven 5+3), and none of the add/edit
- * affordances are copied. Shortcuts are Chrome's list, the sidebar is where a new
- * tab gets edited, and nothing is drawn when there is nothing to show.
+ * favicon, 12px label — so "the same as Chrome" stays checkable against its source
+ * instead of against memory. Two deliberate differences: the grid is two rows of four
+ * rather than one reflowing line (this pane is 620px, where a fifth column would fold
+ * eight sites into an uneven 5+3), and none of the add/edit affordances are copied.
  *
- * Clicking obeys `openInNewTab` like the sidebar does: the element is a real
- * `<a>` so the URL preview and modifier-clicks keep working, and the handler only
- * takes over the plain left click, whose default would navigate *this* tab away.
- *
- * `data-site-url` is the render check's handle on one entry — without it, a
- * search for the host would be answered by the percent-encoded copy inside the
- * favicon's query string even if the label were blank.
+ * Clicking obeys `openInNewTab` like the sidebar does: the element is a real `<a>` so
+ * the URL preview and modifier-clicks keep working, and the handler only takes over
+ * the plain left click, whose default would navigate *this* tab away. `data-site-url`
+ * is the render check's handle on one entry — without it, a search for the host would
+ * be answered by the percent-encoded copy inside the favicon's query string even if
+ * the label were blank.
  */
 import { useSettings } from "@/composables/useSettings";
 import { useTopSites } from "@/composables/useTopSites";

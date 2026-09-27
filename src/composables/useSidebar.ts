@@ -1,11 +1,8 @@
-/**
- * Sidebar geometry: width + collapsed flag, persisted to `storage.local`. The
- * width of a window should not follow the profile to another machine.
+/** Sidebar geometry: width + collapsed flag, persisted to `storage.local` — the width of
+ *  a window should not follow the profile to another machine.
  *
- * There is no collapse button — dragging the divider shut *is* the gesture, so
- * this drag handler is also the collapse handler. See `resolveSidebarDrag` for
- * the thresholds.
- */
+ *  There is no collapse button: dragging the divider shut *is* the gesture, so this drag
+ *  handler is also the collapse handler. */
 import { ref, type Ref } from "vue";
 import { useSettings } from "@/composables/useSettings";
 import {

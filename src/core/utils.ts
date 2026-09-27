@@ -1,7 +1,5 @@
-/**
- * Shared, dependency-free helpers. Nothing here touches the DOM or the Vue
- * runtime so the module stays trivially testable.
- */
+/** Shared, dependency-free helpers. Nothing here touches the DOM or the Vue runtime so
+ *  the module stays trivially testable. */
 
 export function debounce<F extends (...args: never[]) => void>(
   fn: F,
@@ -36,10 +34,8 @@ export function highlightMatch(text: string, query: string): string {
   );
 }
 
-/**
- * Favicon URL for a page. Uses Chromium's internal `_favicon` route, which
- * resolves from the local favicon cache — no network request, no third party.
- */
+/** Favicon URL for a page. Uses Chromium's internal `_favicon` route, which resolves
+ *  from the local favicon cache — no network request, no third party. */
 export function getFaviconUrl(url: string | undefined, size = 32): string {
   if (!url) return "";
   return (
@@ -51,16 +47,11 @@ export function getFaviconUrl(url: string | undefined, size = 32): string {
   );
 }
 
-/**
- * The one locale the interface is written in.
- *
- * Every `Intl` call passes this explicitly rather than leaving the locale
- * `undefined`. The extension ships no translations — no `_locales` directory, no
- * `chrome.i18n` call, no `default_locale` — so reading the browser's locale would
- * not translate anything; it would only let a handful of strings change shape
- * depending on who opened the page. Fixing it also gives those functions an
- * output that can be asserted.
- */
+/** The one locale the interface is written in. Every `Intl` call passes this explicitly
+ *  rather than leaving the locale `undefined`: the extension ships no translations (no
+ *  `_locales`, no `chrome.i18n`, no `default_locale`), so reading the browser's locale
+ *  would translate nothing — it would only let a handful of strings change shape
+ *  depending on who opened the page, and it would make the output unassertable. */
 export const UI_LOCALE = "en-US";
 
 /** HH:MM, 24h, zero-padded. */
@@ -70,12 +61,8 @@ export function formatTime(date: Date): string {
   return `${h}:${m}`;
 }
 
-/**
- * The welcome pane's date line: `Friday, September 25` — no year, since this line
- * is glanced at dozens of times a day and the year would be constant noise. The
- * detail view's `formatFullTimestamp` keeps its year for the opposite reason: it
- * is read deliberately, once.
- */
+/** The welcome pane's date line: `Friday, September 25` — no year, since this line is
+ *  glanced at dozens of times a day and the year would be constant noise. */
 export function formatDate(date: Date): string {
   return date.toLocaleDateString(UI_LOCALE, {
     weekday: "long",
@@ -84,10 +71,8 @@ export function formatDate(date: Date): string {
   });
 }
 
-/**
- * Position a fixed-position menu at (x, y), clamped so it never leaves the
- * viewport. Returns the top-left corner to apply.
- */
+/** Position a fixed-position menu at (x, y), clamped so it never leaves the viewport.
+ *  Returns the top-left corner to apply. */
 export function clampMenuPosition(
   x: number,
   y: number,

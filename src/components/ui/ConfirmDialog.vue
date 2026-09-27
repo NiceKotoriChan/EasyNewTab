@@ -1,10 +1,6 @@
 <script setup lang="ts">
-/**
- * Modal confirmation.
- *
- * Exists because clearing all history used to be bound to a bare `d`
- * keystroke with no prompt at all. Destructive actions now go through this.
- */
+/** Modal confirmation for a destructive action — deleting a folder, say. Focus lands on
+ *  the confirm button, and Escape cancels. */
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 const props = withDefaults(

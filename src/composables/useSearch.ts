@@ -1,9 +1,6 @@
-/**
- * Search state machine for the main search box, driven by the welcome pane's hero
- * box — `/` is the only way to reach that box when it is not already in front.
- * State is per-instance: the pane unmounts whenever a detail view takes over the
- * main area.
- */
+/** Search state machine for the main search box, driven by the welcome pane's hero
+ *  box — `/` is the only way to reach that box when it is not already in front. State
+ *  is per-instance: it belongs to whichever field called it. */
 
 import { computed, onScopeDispose, ref, watch, type ComputedRef, type Ref } from "vue";
 import {

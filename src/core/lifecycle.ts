@@ -1,12 +1,9 @@
-/**
- * Deciding when a page has outlived its own extension.
- *
- * The *decision* lives here, apart from the asking in `bootstrap.ts`, because the
- * two things that must never happen are cheap to test here and expensive to debug
- * in a browser: healing a context that was never alive (a page loaded while the
- * extension was disabled would reload itself forever), and spending an unbounded
- * number of reloads on a context that keeps dying.
- */
+/** Deciding when a page has outlived its own extension. The decision lives here,
+ *  apart from the asking in `bootstrap.ts`, because the two things that must never
+ *  happen are cheap to test here and expensive to debug in a browser: healing a
+ *  context that was never alive (a page loaded while the extension was disabled would
+ *  reload itself forever), and spending unbounded reloads on a context that keeps
+ *  dying. */
 
 /** How many self-reloads one tab may spend before it gives up and stays put. */
 export const MAX_SELF_RELOADS = 3;

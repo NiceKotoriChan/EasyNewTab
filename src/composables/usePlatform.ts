@@ -1,26 +1,18 @@
 /**
- * The two axes the app adapts on, and why they are two rather than one.
+ * The two axes the app adapts on, deliberately kept separate:
  *
- * `isCompact` answers "is there room?". The new tab page is two sheets side by
- * side, and below about 720px the sidebar's 260px leaves the search box too
- * little to go on being the page's centrepiece, so the shell stacks them
- * instead. This is a fact about the *window*: a narrow desktop window gets it
- * too, which is correct, because the reason is room and not the device.
+ * - `isCompact` (≤720px) — is there room? Two sheets stop fitting side by side,
+ *   so the shell stacks them. A fact about the *window*: a narrow desktop window
+ *   gets it too.
+ * - `isTouch` (coarse pointer) — what can the input do? No right button (so
+ *   menus need a long press) and no hardware keyboard (so bare-key bindings
+ *   document nothing). A touchscreen laptop has both a mouse and a keyboard, so
+ *   it gets neither.
  *
- * `isTouch` answers "what can the input do?". A coarse pointer has no right
- * button, so the context menus need a long press to reach them, and it has no
- * hardware keyboard, so a list of bare-key bindings documents nothing. A
- * touchscreen laptop still has its mouse and its keyboard, so it gets neither —
- * which is exactly why this cannot be folded into `isCompact`.
- *
- * 720 is the boundary for *the shell* — whether two sheets fit side by side.
- * Everything about touch that only CSS has to know is asked in CSS instead
- * (`@media (pointer: coarse)` in `tokens.css`, `ContextMenu`, `ConfirmDialog`);
- * the two components carrying a width breakpoint of their own (`SidePanel` hides
- * its tab labels below 640, `EngineSwitcher` its engine names) are answering a
- * narrower question, whether their own contents fit, and are left where they
- * were. This module is for the two things JavaScript has to decide: which menu
- * to build, and whether the browser's own context menu is allowed through.
+ * Merging them would make one of the two devices wrong. The two components that
+ * carry a width breakpoint of their own (`SidePanel` hides tab labels below 640,
+ * `EngineSwitcher` its engine names) answer whether *their own* contents fit and
+ * are left alone.
  */
 import { ref, type Ref } from "vue";
 
@@ -32,19 +24,12 @@ const isTouch = ref(false);
 
 let wired = false;
 
-/**
- * Read both queries, then follow them for the life of the page.
- *
- * Synchronous on purpose: it runs during the first `setup`, before the first
- * paint, so a phone never sees a frame of the desktop shell. Under server-side
- * rendering there is no `window` and both flags stay at their initial `false` —
- * the desktop markup is what gets rendered, which is also what
- * `scripts/render-check.mjs` asserts against.
- *
- * The listeners are never removed. There is exactly one page and one pair of
- * queries; tying them to a component's lifetime would only mean the first
- * component to unmount switched the app back to desktop.
- */
+/** Read both queries, then follow them. Synchronous on purpose — it runs during
+ *  the first `setup`, so a phone never sees a frame of the desktop shell; under
+ *  SSR there is no `window` and both stay `false`. The listeners are never
+ *  removed: there is one page and one pair of queries, so tying them to a
+ *  component's lifetime would only mean the first unmount switched the app back
+ *  to desktop. */
 function wire(): void {
   if (wired) return;
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") {

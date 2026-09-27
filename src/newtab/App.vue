@@ -1,33 +1,12 @@
 <script setup lang="ts">
 /**
- * New tab page shell: two floating sheets on a tinted background, and no chrome
- * of its own.
+ * New tab page shell: two floating sheets on a tinted background, and no chrome of its
+ * own. One flag, two layouts — see `.middle.is-stacked` below for what stacking changes,
+ * and why the DOM order never does.
  *
- * Two layouts, one flag. Side by side, the sidebar and the main area sit in a
- * row; stacked — `isCompact`, a window too narrow to give the search box the
- * room it needs to be the page's centrepiece — the same two sheets become a
- * column with the search card on top and the sidebar filling what is left. It is
- * a `column-reverse`, so the DOM order (sidebar, divider, main) is identical in
- * both and no panel has to know which one it is in. Which edge the sidebar docks
- * to mirrors the row with `row-reverse`, for the same reason.
- *
- * Stacked, there is no divider. It exists to resize and to close, and both of
- * those assume a column the sidebar is competing with for width; stacking gives
- * it the full width and a share of the height instead. The sidebar is therefore
- * always open there: `collapsed` still holds whatever the desktop left behind,
- * and takes effect again the moment the window is wide enough.
- *
- * The keyboard is the whole command surface on a desktop, and none of it is
- * reachable from a touchscreen: no binding uses a modifier, so none fires while
- * the caret is in a text field, and a new tab starts with the caret in the
- * search box. Esc is the way out of that state. A touch device reaches the
- * context menus by long press instead — see `useLongPress` and the two panels.
- *
- * Nothing here knows about bookmarks or history beyond picking which panel to
- * mount, and the main area is always the search card: a sidebar click opens or
- * folds a row and never takes it away. `storage.onChanged` is not wired up here
- * either — `useSettings()` consumers each react only to the fields they use,
- * which is what stops a search-engine change from rebuilding the bookmark tree.
+ * The main area is always the search card: a sidebar click opens or folds a row and never
+ * takes it away. Both stores are instantiated here so the data is already in flight when
+ * the panel mounts.
  */
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import SidePanel from "@/components/layout/SidePanel.vue";
@@ -56,26 +35,21 @@ const { isCompact, isTouch } = usePlatform();
 
 const sidebarPosition = computed(() => settings.value.sidebarPosition);
 
-/**
- * Whether the sidebar sheet is on screen. Collapsing is a desktop gesture, so a
- * stacked shell shows it whatever the flag says — see the note at the top for
- * why that is not simply "reset the flag".
- */
+/** Whether the sidebar sheet is on screen. Collapsing is a desktop gesture, so a stacked
+ *  shell shows the sidebar whatever the flag says — and the flag is left alone rather than
+ *  reset, so the user's preference survives the window going narrow and wide again. */
 const sidebarShown = computed(() => isCompact.value || !collapsed.value);
 
-/**
- * The sidebar's own width is a desktop measurement. Stacked, the sheet spans the
- * column and its height is what the layout hands it, so the inline width has to
- * go rather than be overridden in CSS.
- */
+/** The sidebar's own width is a desktop measurement. Stacked, the sheet spans the column
+ *  and its height is what the layout hands it, so the inline width has to go rather than
+ *  be overridden in CSS. */
 const sidebarStyle = computed(() =>
   isCompact.value ? undefined : { width: width.value + "px" },
 );
 
-// Both stores are instantiated here rather than in the panels so the data is
-// already in flight by the time the panel mounts. The bookmark store is also
-// where the sidebar's search box lives — which is the only reason this file
-// reaches into it rather than letting the panel own its own state.
+// Both stores are instantiated here rather than in the panels so their data is already in
+// flight by the time a panel mounts. The bookmark store is also where the sidebar's search
+// box lives, which is the only reason this file reaches into it.
 const {
   searchOpen: searchBoxOpen,
   openSearch: openSearchBox,
@@ -92,13 +66,9 @@ function selectView(view: View): void {
   persistActiveView(view);
 }
 
-/**
- * The native menu is never useful on a new tab page.
- *
- * The one exception is a text field on a touchscreen: there the browser's own
- * menu is the only route to Paste, and a search box you cannot paste into is a
- * worse trade than a menu that is merely redundant.
- */
+/** The native menu is never useful on a new tab page. The one exception is a text field on
+ *  a touchscreen: there the browser's own menu is the only route to Paste, and a search box
+ *  you cannot paste into is a worse trade than a redundant menu. */
 function suppressNativeMenu(event: Event): void {
   const target = event.target as HTMLElement | null;
   if (isTouch.value && target?.closest?.("input, textarea, [contenteditable]")) {
@@ -117,32 +87,22 @@ function isTypingTarget(target: EventTarget | null): boolean {
   );
 }
 
-/**
- * Put the caret in the main search box.
- *
- * The box is the only thing the main area ever shows, so it is already mounted
- * by the time this runs — there is nothing to swap in first and no `nextTick` to
- * wait for.
- */
+/** Put the caret in the main search box. The box is the only thing the main area ever
+ *  shows, so it is already mounted by the time this runs — nothing to swap in first, and
+ *  no `nextTick` to wait for. */
 function focusSearch(): void {
   welcome.value?.focus();
 }
 
-/**
- * Open the sidebar's bookmark search.
- *
- * The box lives in the bookmarks panel, so `p` switches to that panel as well:
- * a key that focuses something invisible reads as a broken key.
- */
+/** Open the sidebar's bookmark search. The box lives in the bookmarks panel, so `p`
+ *  switches to that panel as well: a key that focuses something invisible reads as broken. */
 function openBookmarkSearch(): void {
   selectView("bookmarks");
   openSearchBox();
 }
 
-/**
- * Escape unwinds the bookmark search box. A text field with something in it
- * clears itself first, inside `SearchField`.
- */
+/** Escape unwinds the bookmark search box; a text field with something in it clears itself
+ *  first, inside `SearchField`. */
 function dismiss(): void {
   if (searchBoxOpen.value) closeSearchBox();
 }
@@ -206,17 +166,17 @@ onBeforeUnmount(() => {
         'is-stacked': isCompact,
       }"
     >
-      <!-- `v-show`, not `v-if`: hiding the sidebar must not throw away its
-           scroll position and expansion state. -->
+      <!-- `v-show`, not `v-if`: hiding the sidebar must not throw away its scroll position
+           and expansion state. -->
       <div v-show="sidebarShown" class="sidebar" :style="sidebarStyle">
         <SidePanel :active="activeView" @select="selectView">
           <BookmarkTree v-if="activeView === 'bookmarks'" />
           <HistoryList v-else />
         </SidePanel>
       </div>
-      <!-- Stacked there is no column to drag a divider across, and no collapsed
-           state for it to bring the sidebar back from, so it is not rendered at
-           all rather than rendered inert. -->
+      <!-- Stacked there is no column to drag a divider across, and no collapsed state for
+           it to bring the sidebar back from, so it is not rendered at all rather than
+           rendered inert. -->
       <Sash
         v-if="!isCompact"
         :collapsed="collapsed"
@@ -238,16 +198,16 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  /* `dvh` so a mobile browser's retractable toolbar does not leave the second
-     sheet pushed under the bottom edge. The `vh` above is the fallback. */
+  /* `dvh` so a mobile browser's retractable toolbar does not leave the second sheet
+     pushed under the bottom edge. The `vh` above is the fallback. */
   height: 100dvh;
   padding: var(--gutter);
   background: var(--app-bg);
 }
 
-/* A finger wants a bigger target than a cursor does, and the list rows are the
-   densest tap targets in the app — the token that sets their height is bumped
-   for a coarse pointer in `tokens.css`, where both panels can see it. */
+/* A finger wants a bigger target than a cursor does, and the list rows are the densest tap
+   targets in the app — the token that sets their height is bumped for a coarse pointer in
+   `tokens.css`, where both panels can see it. */
 
 .middle {
   flex: 1;
@@ -255,17 +215,16 @@ onBeforeUnmount(() => {
   display: flex;
 }
 
-/* Docked right, the row mirrors: the sidebar lands on the right window edge and
-   the divider's gutter moves to its other side. The DOM order is unchanged, so
-   no component has to know about this. */
+/* Docked right, the row mirrors: the sidebar lands on the right window edge and the
+   divider's gutter moves to its other side. The DOM order is unchanged, so no component
+   has to know about this. */
 .middle.is-right {
   flex-direction: row-reverse;
 }
 
-/* Stacked, the same trick on the other axis: reversing the column puts the main
-   area on top and the sidebar under it without either sheet being reordered, so
-   the panel's scroll position survives the window being resized across the
-   boundary. */
+/* Stacked, the same trick on the other axis: reversing the column puts the main area on
+   top and the sidebar under it without either sheet being reordered, so the panel's scroll
+   position survives the window being resized across the boundary. */
 .middle.is-stacked {
   flex-direction: column-reverse;
 }
@@ -283,9 +242,8 @@ onBeforeUnmount(() => {
   margin-left: var(--gutter);
 }
 
-/* Ordered after the two rules above on purpose: same specificity, so these win
-   and the gutter ends up between the sheets vertically rather than beside
-   them. */
+/* Ordered after the two rules above on purpose: same specificity, so these win and the
+   gutter ends up between the sheets vertically rather than beside them. */
 .middle.is-stacked .sidebar {
   flex: 1;
   min-height: 0;
@@ -304,9 +262,9 @@ onBeforeUnmount(() => {
   box-shadow: var(--shadow-sm);
 }
 
-/* The search card is exactly as tall as its contents and the sidebar takes the
-   rest of the column. A fixed share would leave the card mostly empty above the
-   box, which is the one thing on it. */
+/* The search card is exactly as tall as its contents and the sidebar takes the rest of the
+   column. A fixed share would leave the card mostly empty above the box, which is the one
+   thing on it. */
 .middle.is-stacked .main {
   flex: none;
   height: auto;

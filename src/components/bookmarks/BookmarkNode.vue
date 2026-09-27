@@ -3,15 +3,12 @@
  * One bookmark row + its children (recursive).
  *
  * One click is the whole gesture — a bookmark opens, a folder folds (see
- * `resolveRowActivation`). No double click and no selection: clicking the sidebar
- * must never take the main area away from the search box.
- *
- * Expansion and the drop state come from the tree context. Row height is a fixed
- * `--row-h` so the drop-zone maths in the tree stays predictable.
- *
- * The row carries no drag logic: it hands its element to the tree once on mount
- * and reports what happens to it — hover, leave, dwell, drag start/end — then
- * reads back what to draw. All of that lives in `src/dnd/tree.ts`.
+ * `resolveRowActivation`). No double click and no selection: clicking the sidebar must
+ * never take the main area away from the search box. Expansion and the drop state come
+ * from the tree context, and row height is a fixed `--row-h` so the drop-zone maths
+ * stays predictable. The row carries no drag logic: it hands its element to the tree on
+ * mount and reports hover / leave / dwell / drag events back — all of that lives in
+ * `src/dnd/tree.ts`.
  */
 import { computed, inject, onBeforeUnmount, onMounted, ref } from "vue";
 import Icon from "../ui/Icon.vue";

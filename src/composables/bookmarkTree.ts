@@ -1,11 +1,7 @@
 /**
- * Context shared between BookmarkTree and the (recursive) BookmarkNode rows.
- * `provide`/`inject` keeps the recursive component signature down to `node` +
- * `depth`.
- *
- * Drag state lives here rather than in each row because a drag is a property of
- * the tree as a whole — which node is carried, which row the pointer is on, which
- * rows must refuse a drop. Rows only report what happens to them.
+ * Context shared between BookmarkTree and the recursive BookmarkNode rows, which
+ * keeps their signature down to `node` + `depth`. Drag state lives here because a
+ * drag belongs to the tree rather than to a row — rows only report what happens.
  */
 
 import type { ComputedRef, InjectionKey, Ref } from "vue";
@@ -16,7 +12,7 @@ import type { Cleanup, RowHover, RowRegistration } from "@/dnd/tree";
 export interface DropTarget {
   id: string;
   position: DropPosition;
-  /** The row's box, used to place the indicator line. */
+  /** The row's box, for placing the indicator line. */
   rect: DOMRect;
 }
 
@@ -32,12 +28,9 @@ export interface BookmarkTreeContext {
   blockedIds: ComputedRef<Set<string>>;
   /** Left-click: open a bookmark, fold/unfold a folder. See `resolveRowActivation`. */
   activate(node: BookmarkNode): void;
-  /**
-   * A row's context menu, anchored at a point. Coordinates rather than an event
-   * because the tree also opens it by long press, which has no mouse event to
-   * read them from — see `useLongPress`. Only a folder has a menu; for anything
-   * else this returns without opening one.
-   */
+  /** A row's context menu, anchored at a point. Coordinates rather than an event
+   *  because the tree also opens it by long press, which has no mouse event to read
+   *  them from. Only a folder has a menu; anything else returns without opening. */
   nodeContextMenu(x: number, y: number, node: BookmarkNode): void;
   deleteNode(node: BookmarkNode): void;
   /** Hand a row's DOM element to the tree. Returns the cleanup for unmount. */

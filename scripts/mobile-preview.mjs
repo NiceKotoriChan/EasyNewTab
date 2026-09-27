@@ -1,17 +1,14 @@
 /**
- * Renders the extension's two pages in their phone shape and saves them as one
- * page you can look at.
+ * Renders the extension's two pages in their phone shape and saves them as one page you
+ * can look at.
  *
- * The mobile adaptation is driven by two media queries, and both are invisible
- * to the headless checks: `render-check.mjs` can prove that a component stops
- * *rendering* the clock, but nothing in a Node process can prove that the
- * search card ends up *above* the sidebar, because that is a CSS ordering
- * decision. This script closes that gap by rendering the same components the
- * guardrail renders and putting the result somewhere eyes can reach.
- *
- * The two pages are framed as 390×844 iframes rather than drawn inline, so the
- * width media queries in the shipped CSS are evaluated by a real layout engine
- * at a real phone width instead of being simulated.
+ * The mobile adaptation is driven by two media queries, and both are invisible to the
+ * headless checks: `render-check.mjs` can prove that a component stops *rendering* the
+ * clock, but nothing in a Node process can prove that the search card ends up *above* the
+ * sidebar, because that is a CSS ordering decision. This script renders the same
+ * components and puts the result somewhere eyes can reach. The two pages are framed as
+ * 390×844 iframes rather than drawn inline, so the width media queries in the shipped CSS
+ * are evaluated by a real layout engine instead of being simulated.
  *
  *   node scripts/mobile-preview.mjs   →  dist/mobile-preview.html
  */

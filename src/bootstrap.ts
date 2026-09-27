@@ -1,19 +1,9 @@
-/**
- * Keeping an extension page from surviving its own extension.
- *
- * Reloading the extension, or letting Chrome auto-update it, orphans every page
- * that was already open: their `chrome` bindings are dead, so every listener
- * they registered — `storage.onChanged` included — never fires again. The page
- * keeps rendering perfectly, which is what makes it nasty: it looks alive, it
- * just never reacts.
- *
- * Nothing can be *pushed* at the page, because every channel goes through the
- * dead `chrome` object. So the page has to ask. The asking lives here; the
- * decision — when healing is legitimate and when it would be a loop — lives in
- * `core/lifecycle.ts`, which is pure and therefore testable.
- *
- * Call `watchExtensionContext()` once per page, before mounting.
- */
+/** Keeping an extension page from surviving its own extension. A reload or auto-update
+ *  orphans every open page — dead `chrome` bindings, listeners that never fire again —
+ *  while the page keeps rendering perfectly, which is what makes it nasty. Nothing can be
+ *  *pushed* at the page, so it has to ask; when healing is legitimate lives in the pure,
+ *  testable `core/lifecycle.ts`. Call `watchExtensionContext()` once per page, before
+ *  mounting. */
 import {
   INITIAL_CONTEXT_HEALTH,
   resolveContextHealth,

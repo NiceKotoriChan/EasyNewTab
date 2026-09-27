@@ -1,33 +1,16 @@
 <script setup lang="ts">
 /**
- * Settings page — the extension's own options page, and since the new tab page
- * has no gear button, the only place preferences can be changed.
+ * Settings page. Since the new tab page has no gear button, this is the only place
+ * preferences can be changed.
  *
- * Three sections, and the split is the point. **General** holds the behaviour
- * toggles. **Layout** holds the docking side on its own, because it is the one
- * preference that is about the shell rather than about bookmarks, and it is
- * offered on a touchscreen too: a stacked shell has no left and right, but the
- * same preference is what governs the side-by-side layout the moment the window
- * is wide enough for one. **Shortcuts** documents the bare-key bindings, so it
- * is left out entirely on a touch device — there is no keyboard there to press
- * them on, and a list of keys nothing can reach is worse than no list.
- *
- * No Save button: every control writes to `storage.sync` on change. The page
- * carries no prose either — a row is a name and a control, a section is a title
- * and its rows — so "which way counts as shut" is documented nowhere in the UI
- * except the divider's own hover text (`Sash.vue`).
- *
- * The engine picker is deliberately absent: the row of engines under the new tab
- * page's search box is authoritative, and a second copy here would only raise
- * the question of which of the two wins.
- *
- * Because this page is the only writer of settings, it is also the only place a
- * failed write can be reported. `lastError` drives the alert strip at the top;
- * without it, a save that did not land looks exactly like one that did.
- *
- * The four tile glyph in the header is drawn in CSS rather than added to the
- * icon set: it is the page's own mark, not a utility glyph, and every `<svg>` on
- * this page is swept for being MDI's own path data.
+ * Three sections, and the split is the point: **General** is the behaviour toggles,
+ * **Layout** keeps the docking side to itself (it is about the shell, and it applies
+ * again the moment the window is wide enough for side-by-side), and **Shortcuts** is
+ * dropped on a touch device — a list of keys nothing there can press is worse than no
+ * list. No Save button (every control writes on change) and no prose. The engine picker
+ * is absent on purpose: the row under the new tab page's search box is authoritative.
+ * `lastError` drives the alert strip — without it a write that did not land looks like
+ * one that did.
  */
 import Icon from "../components/ui/Icon.vue";
 import type { IconName } from "../components/ui/mdi-icons";
@@ -264,8 +247,7 @@ function setSidebarPosition(id: SidebarPosition): void {
   margin-top: 24px;
 }
 
-/* Two sections on one page. The mark and the space do the separating now, so
-   the rule that used to run between them is gone. */
+/* Two sections on one page; the mark and the space do the separating. */
 .panel + .panel {
   margin-top: 32px;
 }

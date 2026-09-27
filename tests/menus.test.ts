@@ -1,14 +1,14 @@
 /**
  * What the two context menus offer.
  *
- * The lists are the only description of what the app can do to a bookmark's
- * *structure*, and they are deliberately short: a folder row and the blank space
- * under the tree, and nothing else. A bookmark row and every history row have no
- * menu at all — the things they can do are on the row itself.
+ * The lists are the only description of what the app can do to a bookmark's *structure*,
+ * and they are deliberately short: a folder row and the blank space under the tree, and
+ * nothing else. A bookmark row and every history row have no menu at all — the things
+ * they can do are on the row itself.
  *
- * That makes the interesting assertions the negative ones. "Rename is still
- * there" cannot regress quietly; "the detail entry did not come back" can, and
- * it would come back as a menu that opens something with nowhere to go.
+ * That makes the interesting assertions the negative ones: an action silently coming back
+ * is the failure mode, and it would come back as a menu entry that opens something with
+ * nowhere to go.
  */
 
 import assert from "node:assert/strict";
@@ -16,12 +16,9 @@ import test from "node:test";
 
 import { emptyTreeMenu, folderMenu } from "../src/core/menus.ts";
 
-/**
- * Every action either menu may hand out. Adding one is a deliberate act, so it
- * has to be added here too — which is the point: this set is what keeps
- * `details`, `open` and `clear` retired (they are all still reachable by other
- * means, or were removed on purpose).
- */
+/** Every action either menu may hand out. Adding one is a deliberate act, so it has to be
+ *  added here too — this allowlist is what keeps an action from being reintroduced
+ *  without a decision. */
 const ALLOWED_ACTIONS = ["new-folder", "rename", "delete"];
 
 test("a folder row offers make, rename, remove — in the order the work happens", () => {
@@ -40,8 +37,8 @@ test("delete is the dangerous one, and it is last", () => {
   const remove = items[items.length - 1];
   assert.equal(remove.action, "delete");
   assert.equal(remove.danger, true);
-  // Nothing else in the app is a red menu row, so a stray `danger` is a
-  // misfired red rather than a second destructive action.
+  // Nothing else in the app is a red menu row, so a stray `danger` is a misfired red
+  // rather than a second destructive action.
   assert.equal(
     items.filter((item) => item.danger).length,
     1,
@@ -58,9 +55,8 @@ test("the blank space under the tree makes a top-level folder", () => {
 });
 
 test("no menu offers anything a click or a row button already does", () => {
-  // `details` / `open` / `clear` are the retired entries. Absent, not disabled:
-  // a greyed-out row would say "this exists but you may not have it", which is
-  // not what is true.
+  // Absent, not disabled: a greyed-out row would say "this exists but you may not have
+  // it", which is not what is true.
   for (const item of [...folderMenu(), ...emptyTreeMenu()]) {
     assert.ok(
       ALLOWED_ACTIONS.includes(item.action),
@@ -70,17 +66,16 @@ test("no menu offers anything a click or a row button already does", () => {
 });
 
 test("no menu hands out an empty list", () => {
-  // `useContextMenu.open` treats an empty list as "nothing to show"; a builder
-  // that can return one is a menu that silently does nothing.
+  // `useContextMenu.open` treats an empty list as "nothing to show"; a builder that can
+  // return one is a menu that silently does nothing.
   for (const menu of [folderMenu(), emptyTreeMenu()]) {
     assert.ok(menu.length > 0);
   }
 });
 
 test("no menu draws a divider", () => {
-  // Three related actions on one folder are one group. The separator field is
-  // gone from `MenuItem` entirely, so this is really a check that it has not
-  // been reintroduced as an ad-hoc property nobody types.
+  // Three related actions on one folder are one group, so there is no divider to draw —
+  // and no field on `MenuItem` that could reintroduce one as an ad-hoc property.
   for (const item of [...folderMenu(), ...emptyTreeMenu()]) {
     assert.equal("separatorBefore" in item, false);
   }

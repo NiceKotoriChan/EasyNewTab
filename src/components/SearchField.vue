@@ -3,17 +3,12 @@
  * Search input + engine switcher + suggestion dropdown.
  *
  * Used by the welcome pane (hero size, autofocused). All state comes from
- * `useSearch()`, so every entry point shares one engine choice and one
- * behaviour definition.
- *
- * The hero variant is deliberately large — 58px tall, fully rounded, floating
- * on its own shadow — because this box is the one interactive thing on a page
- * whose entire purpose is "open a tab and type". Its hover and focus states
- * are the only elevation changes in the app.
- *
- * `showEngines` puts the engine row back under the input (it lives in the
- * search box, not in a settings screen — that is where you look when a query
- * came back from the wrong engine).
+ * `useSearch()`, so every entry point shares one engine choice and one behaviour
+ * definition. The hero variant is deliberately large — 58px tall, fully rounded,
+ * floating on its own shadow — because this box is the one interactive thing on a page
+ * whose entire purpose is "open a tab and type". `showEngines` puts the engine row back
+ * under the input; it lives in the search box rather than a settings screen, which is
+ * where you look when a query came back from the wrong engine.
  */
 import { computed, onMounted, ref } from "vue";
 import EngineSwitcher from "./EngineSwitcher.vue";

@@ -2,15 +2,12 @@
 /**
  * History sidebar panel — grouped by day, newest first.
  *
- * One click opens an entry in a new tab; nothing is selected, so the search box
- * in the main area is never replaced by a click. The row's other action is its
- * own delete button, and that is the whole surface: this panel has no context
- * menu, on rows or on the blank space, because a list you read and prune does not
- * need one — every action it has is already on the row that has it.
- *
- * The list is unbounded — everything in the profile is requested and every row
- * rendered, which stays cheap because off-screen rows opt out of layout and paint
- * (see `.row` below).
+ * One click opens an entry in a new tab; nothing is selected, so the search box in the
+ * main area is never replaced by a click. The row's other action is its own delete
+ * button, and that is the whole surface: this panel has no context menu, on rows or on
+ * the blank space, because a list you read and prune does not need one. The list is
+ * unbounded — everything in the profile is requested and every row rendered, which stays
+ * cheap because off-screen rows opt out of layout and paint.
  */
 import Favicon from "../ui/Favicon.vue";
 import Icon from "../ui/Icon.vue";

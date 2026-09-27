@@ -381,11 +381,10 @@ try {
   );
   expect(nodeSource, "var(--icon-folder)", "BookmarkNode.vue takes the folder tint from the token");
   expectAbsent(nodeSource, "color: #", "BookmarkNode.vue hard-codes no colour of its own");
-  // Rows are no longer native drag sources: `draggable="true"` and its
-  // dragstart/dragover/drop handlers were replaced by the adapter in
-  // `src/dnd/tree.ts`, which is what gives the tree a drag image it controls,
-  // edge autoscroll and `canDrop()`. Leaving the attribute behind would put the
-  // browser's own drag in charge of the same element again.
+  // Rows are not native drag sources: the adapter in `src/dnd/tree.ts` owns the gesture,
+  // which is what gives the tree a drag image it controls, edge autoscroll and `canDrop()`.
+  // A leftover `draggable="true"` would put the browser's own drag back in charge of the
+  // same element.
   expectAbsent(secondPass, 'draggable="true"', "rows are not native drag sources — the adapter owns the gesture");
   // Not decoration either: the adapter reads `data-node-id` off the rows to
   // tell a drop in the blank space under the list from a drop between rows.
@@ -523,14 +522,12 @@ try {
   expect(wideAgain, 'aria-label="Resize sidebar"', "divider and all");
 
   console.log("click contract");
-  // A left click is the whole gesture: it opens a bookmark or folds a folder,
-  // and there is no state it can put the main area into. Selection used to be
-  // the counterexample and is gone — see "no detail view" below for why the two
-  // halves of it are pinned together.
+  // A left click is the whole gesture: it opens a bookmark or folds a folder, and there is
+  // no state it can put the main area into — see "no detail view" below for why that absence
+  // is pinned from both ends.
   //
-  // Folding a folder is the only gesture that changes what the panel shows
-  // (the expand-all button that used to do it in one go is gone), so that is
-  // what this pass drives: `toggleExpanded` is exactly what a row click calls.
+  // Folding a folder is the only gesture that changes what the panel shows, so that is what
+  // this pass drives: `toggleExpanded` is exactly what a row click calls.
   const { useBookmarks } = await server.ssrLoadModule("/src/composables/useBookmarks.ts");
   useBookmarks().toggleExpanded("f1");
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -670,9 +667,9 @@ try {
     );
     expectEqual(exists, false, `${gone} stays deleted`);
   }
-  // And the shell no longer has anything to swap the search card out with: it
-  // imports no detail view, so the main area is the search box in every pass
-  // above — not by state, but because there is no other branch left.
+  // And the shell has nothing to swap the search card out with: it imports no detail view,
+  // so the main area is the search box in every pass above — not by state, but because there
+  // is no other branch.
   expectAbsent(
     await readSource("src/newtab/App.vue", "utf8"),
     "Detail.vue",
@@ -688,10 +685,9 @@ try {
   const historyHtml = await renderToString(createSSRApp(HistoryList));
   expect(historyHtml, "Today", "history list groups entries by day");
   expect(historyHtml, "Example", "history list renders an entry");
-  // The row's delete is the whole of its second action, so it has to be in the
-  // markup rather than depending on a menu the panel no longer has. It is a real
-  // render assertion, unlike the source reads above: this one breaks if the
-  // button stops being emitted at all.
+  // The row's delete is the whole of its second action, so it has to be in the markup rather
+  // than depending on a menu. It is a real render assertion, unlike the source reads above:
+  // this one breaks if the button stops being emitted at all.
   expect(historyHtml, 'aria-label="Remove from history"', "each history row carries its own delete button");
   expectAbsent(historyHtml, 'role="menu"', "and no menu is rendered with it");
 
@@ -714,10 +710,8 @@ try {
   expect(welcomeHtml, "search-field", "welcome pane hosts the hero search box");
   expect(welcomeHtml, "is-large", "hero search box uses the large variant");
   expect(welcomeHtml, "GitHub", "hero search box carries the engine row");
-  // This spot used to be empty on purpose — a "frequently visited" grid of
-  // tinted tiles was deleted from it in an earlier round for competing with the
-  // search box. The row is back at the user's request, so the assertion is no
-  // longer "nothing is here": it is that what is here stays inside the budget.
+  // The row has to stay inside its budget: it hangs off the bottom of the search block
+  // rather than competing with it.
   expect(welcomeHtml, 'aria-label="Most visited sites"', "the shortcut row hangs off the bottom of the search block");
   // The shape is Chromium's, and it takes two elements to make it: the favicon
   // centred on a filled circle, at 24px. Either half alone would still look
@@ -915,11 +909,10 @@ try {
     "new-folder",
     "and the blank space under the tree makes a top-level folder",
   );
-  // The rows that must NOT have a menu. `Details` would come back through one of
-  // these builders, so the builders are where its absence is pinned — and the two
-  // that used to hand it out do not exist at all any more, which reading them
-  // back is the assertion. `typeof` rather than a deep equal: the module
-  // namespace answers `undefined` for a name that was never exported.
+  // The rows that must NOT have a menu. `Details` would come back through one of these
+  // builders, so the builders are where its absence is pinned — and reading a builder back by
+  // the name it was exported under is the assertion. `typeof` rather than a deep equal: the
+  // module namespace answers `undefined` for a name that was never exported.
   for (const gone of ["bookmarkMenu", "historyMenu", "emptyHistoryMenu"]) {
     expectEqual(
       typeof menus[gone],

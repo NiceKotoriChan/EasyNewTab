@@ -1,18 +1,14 @@
 /**
- * Unit tests for the shared helpers, opened by the clock block on the welcome
- * pane.
+ * Unit tests for the shared helpers behind the welcome pane's clock block.
  *
- * `formatDate` reads no ambient state, so almost every rule it follows is
- * checkable against a literal. The one rule that is not is the one that matters
- * most — the locale it must *ignore*. Node fixes its default locale at startup
- * and ignores later writes to `process.env`, so the only way to prove the
- * function does not follow the host is to run it again in a second process with
- * a different one. That is what the third test does, and it is the one that
- * fails if `formatDate` ever goes back to reading the runtime locale.
+ * `formatDate` reads no ambient state, so almost every rule it follows is checkable
+ * against a literal. The one that is not is the one that matters most — the locale it
+ * must *ignore*. Node fixes its default locale at startup and ignores later writes to
+ * `process.env`, so the only way to prove the function does not follow the host is to run
+ * it in a second process with a different one.
  *
- * Note that `tsconfig.json` does not include this directory, so these files are
- * not type-checked — only executed. A typo surfaces as a failing test, not as a
- * compiler error.
+ * Note that `tsconfig.json` does not include this directory, so these files are not
+ * type-checked — only executed. A typo surfaces as a failing test, not a compiler error.
  */
 
 import assert from "node:assert/strict";
@@ -34,10 +30,10 @@ test("the date line carries no year", () => {
 });
 
 test("the date line stays English under a non-English host locale", () => {
-  // The locale is printed next to the output on purpose. Asserting the two
-  // together stops this from passing vacuously: if `LC_ALL` ever stopped taking
-  // effect, the prefix would change and the failure would say which half broke,
-  // rather than quietly comparing English against English.
+  // The locale is printed next to the output on purpose. Asserting the two together
+  // stops this from passing vacuously: if `LC_ALL` ever stopped taking effect, the prefix
+  // would change and the failure would say which half broke, rather than quietly
+  // comparing English against English.
   const script = [
     'import { formatDate } from "./src/core/utils.ts";',
     'const locale = Intl.DateTimeFormat().resolvedOptions().locale;',

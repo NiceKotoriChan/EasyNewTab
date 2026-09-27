@@ -1,12 +1,10 @@
 /**
- * Bookmark tree state — shared by the sidebar tree and the detail pane.
+ * Bookmark tree state — shared by the sidebar tree and the panel switch.
  *
  * Every mutation reloads from the API (debounced) rather than patching the DOM:
- * that is what lets expansion live in `expandedIds` instead of in CSS classes,
- * so a rebuild cannot lose it.
- *
- * "Other bookmarks" and the search query are both *views* layered over
- * `rawTree`, so flipping either costs no extra `getTree()` round-trip.
+ * that is what lets expansion live in `expandedIds` instead of in CSS classes, so
+ * a rebuild cannot lose it. "Other bookmarks" and the search query are both views
+ * layered over `rawTree`, so neither costs an extra `getTree()` round-trip.
  */
 import { computed, ref, type ComputedRef, type Ref } from "vue";
 import {
@@ -42,7 +40,7 @@ function onBookmarksChanged(cb: () => void): () => void {
   };
 }
 
-/** Children of a folder, or `[]` if it no longer exists. */
+/** Children of a folder, or `[]` if the folder is gone. */
 async function getChildren(id: string): Promise<BookmarkNode[]> {
   try {
     return await chrome.bookmarks.getChildren(id);
@@ -105,8 +103,7 @@ async function reload(): Promise<void> {
       // Open the top-level folders so the first run is not a wall of collapsed
       // rows. Deeper folders stay closed.
       expandedIds.value = new Set(topLevelNodes(raw).map((n) => n.id));
-    }
-    failed.value = false;
+    }    failed.value = false;
   } catch (err) {
     console.error("Failed to load bookmarks:", err);
     failed.value = true;
@@ -159,9 +156,9 @@ export function useBookmarks(): {
 
   function isExpanded(id: string): boolean {
     if (expandedIds.value.has(id)) return true;
-    // A running search also opens the folders on the path to its hits. Read
-    // from `reveal` rather than written into `expandedIds`, so clearing the
-    // query gives back exactly the folds the user had.
+    // A running search also opens the folders on the path to its hits. Read from
+    // `reveal` rather than written into `expandedIds`, so clearing the query gives
+    // back exactly the folds the user had.
     return search.value.active && search.value.reveal.has(id);
   }
 
@@ -255,7 +252,6 @@ export function useBookmarks(): {
     else await chrome.bookmarks.remove(node.id);
     await reload();
   }
-
   return {
     tree,
     visibleTree,

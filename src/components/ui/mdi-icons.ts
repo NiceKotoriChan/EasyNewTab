@@ -60,10 +60,8 @@ const ICONS = {
 /** Every icon the app may ask for. Lists of icons type their field with this. */
 export type IconName = keyof typeof ICONS;
 
-/**
- * `IconName` in, component out — no lookup miss is representable, so there is no
- * "empty box" branch to forget about.
- */
+/** `IconName` in, component out — no lookup miss is representable, so there is no
+ *  "empty box" branch to forget about. */
 export function resolveIcon(name: IconName): Component {
   return ICONS[name];
 }

@@ -1,12 +1,7 @@
-/**
- * Chrome's "most visited" list, reduced to what a shortcut row can show — a list
- * of *pages*, and a page is not a site. Pure, so the rules below are pinned by
- * `tests/topSites.test.ts` rather than by looking at what got rendered.
- *
- * Ranking is deliberately left alone: Chrome's order is the entire reason to use
- * this API instead of counting visits ourselves, so nothing here sorts. It takes
- * the first `limit` distinct sites *in the order they arrived*.
- */
+/** Chrome's "most visited" list, reduced to what a shortcut row can show. Pure, so
+ *  the rules are pinned by `tests/topSites.test.ts`. Ranking is left alone: Chrome's
+ *  order is the whole reason to use this API, so nothing here sorts — it takes the
+ *  first `limit` distinct sites as they arrive. */
 
 /** A page Chrome considers one of the most visited. */
 interface TopSiteLike {
@@ -20,21 +15,12 @@ export interface TopSite {
   title: string;
 }
 
-/**
- * How many the row shows.
- *
- * Chromium caps its own list well above this. Eight is what fits two tidy rows
- * of four under the search box, and the row is a shortcut rather than an
- * inventory — the sidebar is where the full list lives.
- */
+/** Eight, because that is two tidy rows of four under the search box. */
 export const TOP_SITE_LIMIT = 8;
 
 /**
  * The site a URL belongs to, or `null` if a new tab should not offer it.
- *
- * `www.` is stripped so `www.zhihu.com` and `zhihu.com` are one site: Chrome
- * treats them as one, and a row showing both would read as a bug rather than
- * as two places.
+ * `www.` is stripped so `www.zhihu.com` and `zhihu.com` are one site.
  */
 function siteKey(url: string): string | null {
   let parsed: URL;
@@ -47,20 +33,11 @@ function siteKey(url: string): string | null {
   return parsed.hostname.replace(/^www\./, "").toLowerCase();
 }
 
-/**
- * The list the row renders.
- *
- * Three rules, all of them visible:
- *
- * - **The first entry for a host wins.** Chrome ranks the *page* it thinks you
- *   want most, and that page's title is the better label of the two; keeping
- *   the later one would swap a site's name for the name of one of its pages.
- * - **A blank title falls back to the host.** `title` is whatever the page
- *   declared, and plenty declare nothing — without the fallback those entries
- *   render as an icon beside empty space.
- * - **Only `http:` / `https:`.** A new tab offers places to go; `chrome://`,
- *   `file://` and `javascript:` are not places it can send you from here.
- */
+/** The list the row renders. Three visible rules: the first entry for a host wins
+ *  (Chrome ranks the page it thinks you want most, and its title labels the site
+ *  better than a later one's); a blank title falls back to the host, since plenty of
+ *  pages declare none; and only `http:`/`https:` — `chrome://` and `file://` are not
+ *  places a new tab can send you. */
 export function selectTopSites(
   sites: readonly TopSiteLike[],
   limit: number = TOP_SITE_LIMIT,

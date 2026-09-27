@@ -1,12 +1,9 @@
 /**
  * Unit tests for the pure bookmark logic.
  *
- * Run with `npm test` (Node's built-in runner; the `.ts` files are executed
- * via native type stripping — no test framework dependency).
- *
- * The drag-and-drop index correction is the reason this file exists: it was
- * derived by trial and error against a real Chrome profile, and a silent
- * regression there is invisible until a bookmark lands one slot off.
+ * The drag-and-drop index correction is the reason this file exists: it was derived by
+ * trial and error against a real Chrome profile, and a silent regression there is
+ * invisible until a bookmark lands one slot off.
  */
 
 import assert from "node:assert/strict";
@@ -52,13 +49,12 @@ function move(opts: {
 /**
  * Chromium's move rules, transcribed from the platform that enforces them.
  *
- * `BookmarkModel::Move` (components/bookmarks/browser/bookmark_model.cc) does
- * two things before it touches the list: it treats `index == old_index` and
- * `index == old_index + 1` in the same folder as "already there, nothing to
- * do", and it decrements the index when the node is moving later in the same
- * folder. Reproducing it here is the only way to test our index arithmetic:
- * the number `computeMoveTarget` returns is meaningless on its own, and an
- * assertion like "index === 2" happily passes while the result is wrong.
+ * `BookmarkModel::Move` (components/bookmarks/browser/bookmark_model.cc) does two things
+ * before it touches the list: it treats `index == old_index` and `index == old_index + 1`
+ * in the same folder as "already there, nothing to do", and it decrements the index when
+ * the node is moving later in the same folder. Reproducing it here is the only way to test
+ * our index arithmetic: the number `computeMoveTarget` returns is meaningless on its own,
+ * and an assertion like "index === 2" happily passes while the result is wrong.
  */
 function chromiumMove<T>(list: readonly T[], from: number, index: number): T[] {
   if (index === from || index === from + 1) return [...list];
@@ -70,10 +66,10 @@ function chromiumMove<T>(list: readonly T[], from: number, index: number): T[] {
 }
 
 /**
- * Where a drop is supposed to land, stated without reference to any index
- * convention: lift the dragged row out, then put it back immediately before or
- * after the target row. Both positions are in the list as it was before the
- * lift, which is the same frame the indicator line is drawn in.
+ * Where a drop is supposed to land, stated without reference to any index convention:
+ * lift the dragged row out, then put it back immediately before or after the target row.
+ * Both positions are in the list as it was before the lift, which is the same frame the
+ * indicator line is drawn in.
  */
 function intended<T>(
   list: readonly T[],
@@ -88,12 +84,11 @@ function intended<T>(
 }
 
 test("every ordered drop lands exactly where the indicator promised", () => {
-  // Downward moves were the broken half. `computeMoveTarget` used to subtract
-  // one for a same-folder move — which is the adjustment Chromium makes itself,
-  // so the two cancelled out: one slot down became a no-op, two slots down
-  // moved one. Upward moves were unaffected (the platform's decrement does not
-  // fire when the node is moving earlier), and that asymmetry is exactly what
-  // made it read as "the drop was ignored" instead of as an off-by-one.
+  // Downward moves are the half that can go wrong: the correction belongs to Chromium,
+  // and applying it a second time here cancels it out — one slot down becomes a no-op
+  // and two slots down moves one. Upward moves are unaffected, because the platform's
+  // decrement does not fire when the node is moving earlier, and that asymmetry is what
+  // makes such a bug read as "the drop was ignored" rather than as an off-by-one.
   const list = ["a", "b", "c", "d"];
   const rows: BookmarkNode[] = list.map((id) => ({
     id,
@@ -128,9 +123,9 @@ test("every ordered drop lands exactly where the indicator promised", () => {
 });
 
 test("the index is named in the frame the list is in before the move", () => {
-  // The correction belongs to Chromium, but the frame is still ours to get
-  // right: a downward drop names the slot as counted *before* the node is
-  // lifted out. Both of these land the same way round; only the index differs.
+  // The correction belongs to Chromium, but the frame is still ours to get right: a
+  // downward drop names the slot as counted *before* the node is lifted out. Both of
+  // these land the same way round; only the index differs.
   assert.deepEqual(
     move({
       dragId: "a",
@@ -152,8 +147,8 @@ test("the index is named in the frame the list is in before the move", () => {
 });
 
 test("a drop after the last row may name the append slot", () => {
-  // Chromium accepts `index == children().size()` (`IsValidIndex(..., true)`),
-  // so the one-past-the-end index is legal and must not be clamped away.
+  // Chromium accepts `index == children().size()` (`IsValidIndex(..., true)`), so the
+  // one-past-the-end index is legal and must not be clamped away.
   assert.deepEqual(
     move({
       dragId: "a",
@@ -190,9 +185,8 @@ test("dropping a node onto itself is rejected", () => {
 });
 
 test("a target that is not among its parent's children is rejected", () => {
-  // Belt and braces for a reload race: the row is on screen but the sibling
-  // list no longer has it, so there is no index to name. Better to do nothing
-  // than to guess a slot.
+  // Belt and braces for a reload race: the row is on screen but the sibling list does
+  // not have it, so there is no index to name. Better to do nothing than to guess a slot.
   assert.deepEqual(
     computeMoveTarget({
       dragId: "x",
@@ -305,8 +299,8 @@ test("subtreeContains detects cycles before they happen", () => {
 });
 
 test("a click opens a bookmark but only folds a folder", () => {
-  // The click contract: one click is the whole gesture, and it never selects,
-  // so the search box in the main area stays where it is.
+  // The click contract: one click is the whole gesture, and it never selects, so the
+  // search box in the main area stays where it is.
   assert.equal(
     resolveRowActivation({ id: "b", title: "GitHub", url: "https://github.com" }),
     "open",
@@ -315,8 +309,6 @@ test("a click opens a bookmark but only folds a folder", () => {
   // `getTree()` gives a folder an empty/absent url; both must fold, not "open".
   assert.equal(resolveRowActivation({ id: "f2", title: "Empty url", url: "" }), "toggle");
 });
-
-// ---------------------------------------------------------------- search
 
 /** One top-level folder, so the "ancestors are kept" cases have a parent. */
 function searchable(): BookmarkNode[] {
@@ -352,8 +344,8 @@ test("an empty query is not a filter", () => {
 
 test("search keeps the matches and the folders above them, and drops the rest", () => {
   const result = searchBookmarks(searchable(), "vue");
-  // "Dev" does not match — it survives only as the way down to two rows that
-  // do, which is the whole difference from "matches plus descendants".
+  // "Dev" does not match — it survives only as the way down to two rows that do, which
+  // is the whole difference from "matches plus descendants".
   assert.deepEqual(result.nodes[0].children!.map((n) => n.id), ["f1"]);
   assert.deepEqual(
     result.nodes[0].children![0].children!.map((n) => n.id),
@@ -372,8 +364,8 @@ test("search reports the folders it must open, and only those", () => {
 test("a folder that matches on its own is kept without being opened", () => {
   const result = searchBookmarks(searchable(), "dev");
   assert.deepEqual(result.nodes[0].children!.map((n) => n.id), ["f1"]);
-  // Nothing below it matched, so there is nothing to reveal: opening it would
-  // show an empty folder, and the user's own fold is left as they left it.
+  // Nothing below it matched, so there is nothing to reveal: opening it would show an
+  // empty folder, and the user's own fold is left as they left it.
   assert.equal(result.reveal.has("f1"), false);
   assert.deepEqual([...result.reveal], ["1"]);
 });

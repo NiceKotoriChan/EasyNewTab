@@ -2,23 +2,12 @@
 /**
  * Draggable divider: invisible in the gutter, a 2px accent bar on hover.
  *
- * Rendered unconditionally *in the side-by-side layout* — expanded and
- * collapsed both. Collapsing the sidebar is the same drag as resizing it, so the
- * element under the pointer has to outlive the state change it causes (see
- * `useSidebar.startResize`). Collapsed, the sidebar hides with `v-show` and this
- * handle ends up flush against the window edge, which is where the hand already
- * is.
- *
- * The shell does not render it at all once the two sheets are stacked: there is
- * no column to drag across, and no collapsed state for it to bring the sidebar
- * back from.
- *
- * The negative margin that puts it there depends on `position`, and so does the
- * hint text: the divider cancels the *sidebar's* gutter, which is on the
- * divider's left when docked left and on its right when docked right.
- *
- * The native listener is bound by the parent and forwarded by Vue, so the drag
- * logic lives in `useSidebar`.
+ * Rendered in the side-by-side layout both expanded and collapsed, because collapsing
+ * *is* the same drag as resizing and the element under the pointer has to outlive the
+ * state change it causes. The shell drops it once the sheets are stacked: there is no
+ * column to drag across. The negative margin and the hint text both depend on
+ * `position` — the divider cancels the *sidebar's* gutter, which is on its left when
+ * docked left and on its right when docked right.
  */
 import { computed } from "vue";
 import type { SidebarPosition } from "@/core/settings";

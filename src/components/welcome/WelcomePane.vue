@@ -1,17 +1,14 @@
 <script setup lang="ts">
 /**
- * The main-area view when nothing is selected: a quiet clock and the hero search
- * box, so opening a new tab and typing still just works. The search box is the
- * only thing here that takes input.
+ * The main-area view when nothing is selected: a quiet clock and the hero search box,
+ * so opening a new tab and typing still just works.
  *
- * Compact, this is the top card of a stacked shell and shrinks to the search box
- * and its engine row. The clock and the most-visited row are both ambient
- * information — things a wide window has room to say and a phone does not — and
- * dropping them is what keeps the card as tall as the one control on it.
+ * Compact, this is the top card of a stacked shell and shrinks to the search box and
+ * its engine row — the clock and the most-visited row are ambient information a wide
+ * window has room to say and a phone does not.
  *
- * The box is autofocused on mount, which covers a plain new tab; it is also
- * exposed for the case mount does not cover — `/` pressed while a detail view was
- * open, where this pane is created *by* the keystroke.
+ * The box is autofocused on mount; `focus` is also exposed for the case mount does not
+ * cover — `/` pressed while this pane is being created *by* that keystroke.
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import SearchField from "../SearchField.vue";
@@ -32,14 +29,10 @@ function stopClock(): void {
   }
 }
 
-/**
- * Run the tick only while the clock is on screen.
- *
- * A second is the resolution the clock shows, so here a tick is not a rounding
- * error — it is the whole update. That is also why the compact layout stops it:
- * a timer whose value nothing reads is one wakeup a second for nothing, and on
- * the device that gets this layout that is the battery talking.
- */
+/** Run the tick only while the clock is on screen. A second is the resolution the clock
+ *  shows, so here a tick is the whole update rather than a rounding error — and a timer
+ *  whose value nothing reads is one wakeup a second for nothing, which on the device
+ *  that gets the compact layout is the battery talking. */
 function syncClock(): void {
   stopClock();
   if (!isCompact.value) {
@@ -51,8 +44,8 @@ function syncClock(): void {
 
 onMounted(() => {
   syncClock();
-  // Followed rather than read once: widening the window past the boundary has
-  // to bring back a clock showing the right time, not the time it was mounted.
+  // Followed rather than read once: widening the window past the boundary has to bring
+  // back a clock showing the right time, not the time it was mounted.
   stopWatching = watch(isCompact, syncClock);
 });
 
@@ -67,15 +60,13 @@ const date = computed(() => formatDate(now.value));
 
 const field = ref<InstanceType<typeof SearchField> | null>(null);
 
-/**
- * Escape pressed inside an empty search box — the field has already cleared
- * itself, or had nothing to clear, so the last thing left to unwind is focus.
+/** Escape pressed inside an empty search box — the field has already cleared itself, or
+ *  had nothing to clear, so the last thing left to unwind is focus.
  *
- * Load-bearing rather than cosmetic: every bare-key binding is gated behind "the
- * caret is not in a text field", and this box autofocuses on mount, so without
- * an Escape that actually leaves it there is no keyboard route to any shortcut at
- * all. `/` is the way back in.
- */
+ *  Load-bearing rather than cosmetic: every bare-key binding is gated behind "the caret
+ *  is not in a text field", and this box autofocuses on mount, so without an Escape that
+ *  actually leaves it there is no keyboard route to any shortcut at all. `/` is the way
+ *  back in. */
 function leaveField(): void {
   field.value?.blur();
 }
@@ -128,10 +119,8 @@ defineExpose({ focus: () => field.value?.focus() });
 }
 
 /* The input and the engine row are one control (`SearchField` owns the 14px
-   between them); the shortcut tiles below are a section of their own, so they do
-   not reuse the stack's 30px — they take 32px. That is not all of the air that
-   changed: the tile reserves a further 16px above its icon, so the distance from
-   the engine row to the first circle grows from 18px to 48px. */
+   between them); the most-visited row is a section of its own, so it takes 32px
+   rather than the stack's 30px. */
 .search-block {
   display: flex;
   flex-direction: column;

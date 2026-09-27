@@ -2,17 +2,12 @@
 /**
  * Search engine switcher — the row of engine chips under the search box.
  *
- * Six separate outlined pills rather than one segmented track, because six
- * independent choices is what this row actually is: a track draws a single border
- * around the whole row and raises the current option, which reads as one control
- * with a value. Here each engine gets its own border and the current one is
- * marked by colour instead — accent border and text on the neutral `--inset`
- * wash.
- *
- * It writes through `useSettings()` like every other control, so the choice
- * persists and is immediately visible to whichever search field is on screen. No
- * search state lives here: `useSearch()` watches the engine and re-runs the
- * pending query, so the two never need to know about each other.
+ * Six separate outlined pills rather than one segmented track, because six independent
+ * choices is what this row actually is: a track draws a single border around the whole
+ * row and raises the current option, which reads as one control with a value. Here each
+ * engine gets its own border and the current one is marked by colour instead. It writes
+ * through `useSettings()`, so the choice persists and is visible to whichever search
+ * field is on screen; `useSearch()` watches the engine and re-runs the pending query.
  */
 import EngineIcon from "./ui/EngineIcon.vue";
 import { useSettings } from "@/composables/useSettings";

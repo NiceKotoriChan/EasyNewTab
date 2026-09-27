@@ -1,18 +1,15 @@
 /**
  * Shared harness for the scripts that stand in for a browser.
  *
- * Two scripts render the extension outside Chrome: `render-check.mjs`, which
- * asserts on what comes out, and `mobile-preview.mjs`, which saves what comes
- * out as a page you can look at. Both need the same three things — a `chrome.*`
- * surface that answers like the real one, fixtures that trip the interesting
- * edges, and a Vite server that compiles the actual SFCs — and neither can get
- * them from a browser. Keeping them here means the two cannot drift: a fixture
- * added for one is automatically what the other renders.
+ * Two scripts render the extension outside Chrome: `render-check.mjs`, which asserts on
+ * what comes out, and `mobile-preview.mjs`, which saves it as a page you can look at.
+ * Both need the same three things — a `chrome.*` surface that answers like the real one,
+ * fixtures that trip the interesting edges, and a Vite server that compiles the actual
+ * SFCs — and keeping them here means the two cannot drift.
  *
- * The stub is deliberately shallow. It answers; it does not model. What a
- * browser does with a bookmark tree, a storage quota or a `pointer: coarse`
- * media query is not reproducible in a Node process, so nothing here pretends
- * to try.
+ * The stub is deliberately shallow. It answers; it does not model. What a browser does
+ * with a bookmark tree, a storage quota or a `pointer: coarse` media query is not
+ * reproducible in a Node process, so nothing here pretends to try.
  */
 
 import { createServer } from "vite";

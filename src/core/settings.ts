@@ -1,13 +1,7 @@
-/**
- * Settings, layout, and the sidebar's drag geometry — the pure half of "how the
- * shell is shaped".
- *
- * Settings live in `storage.sync` (they follow the Chrome profile); layout lives
- * in `storage.local` (per machine — window sizes should not sync). The split is
- * "what the user prefers" vs "how big this window happens to be": which edge the
- * sidebar docks to is a preference, how wide it is is a measurement of one
- * window.
- */
+/** Settings, layout, and the sidebar's drag geometry — the pure half of "how the shell
+ *  is shaped". Settings live in `storage.sync` (they follow the Chrome profile); layout
+ *  lives in `storage.local` (per machine — window sizes should not sync). The split is
+ *  "what the user prefers" vs "how big this window happens to be". */
 
 import { DEFAULT_ENGINE_ID, isEngineId, type EngineId } from "./engines.ts";
 
@@ -23,11 +17,9 @@ export interface Settings {
   openInNewTab: boolean;
   /** Show Chrome's "Other bookmarks" folder in the sidebar tree. */
   showOtherBookmarks: boolean;
-  /**
-   * Everything directional derives from this: the divider's gutter, which way a
-   * drag has to go to shut the sidebar, and which window edge the collapsed
-   * handle waits on.
-   */
+  /** Everything directional derives from this: the divider's gutter, which way a drag
+   *  has to go to shut the sidebar, and which window edge the collapsed handle waits
+   *  on. */
   sidebarPosition: SidebarPosition;
 }
 
@@ -42,10 +34,8 @@ export const SIDEBAR_MIN = 180;
 export const SIDEBAR_MAX = 480;
 export const SIDEBAR_DEFAULT = 260;
 
-/**
- * How narrow the sidebar has to get before the drag shuts it. Well below
- * `SIDEBAR_MIN`, so closing it takes real intent rather than one stray pixel.
- */
+/** How narrow the sidebar has to get before the drag shuts it. Well below `SIDEBAR_MIN`,
+ *  so closing it takes real intent rather than one stray pixel. */
 export const SIDEBAR_COLLAPSE_AT = 110;
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -67,12 +57,10 @@ function clampInt(value: unknown, min: number, max: number, fallback: number) {
   return Math.min(max, Math.max(min, Math.round(n)));
 }
 
-/**
- * Coerce whatever is in storage into a valid Settings object. This is the single
- * place that decides what is valid, so a stale or hand-edited value can never
- * reach the app as a surprise type. Unknown keys are dropped, which is how a
- * leftover field from an older build disappears on the next write.
- */
+/** Coerce whatever is in storage into a valid Settings object. This is the single place
+ *  that decides what is valid, so a stale or hand-edited value can never reach the app as
+ *  a surprise type. Unknown keys are dropped, which is how a leftover field from an older
+ *  build disappears on the next write. */
 export function normalizeSettings(raw: unknown): Settings {
   const o = (raw ?? {}) as Record<string, unknown>;
   return {
@@ -110,8 +98,6 @@ export function normalizeLayout(raw: unknown): LayoutState {
   };
 }
 
-// ---------------------------------------------------------------- drag geometry
-
 type SidebarDrag =
   | { kind: "resize"; width: number }
   | { kind: "collapse" }
@@ -122,15 +108,12 @@ export function clampSidebarWidth(value: number): number {
   return Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, Math.round(value)));
 }
 
-/**
- * How wide the sidebar becomes if the divider is dragged to `clientX`.
- *
- * The divider always sits on the sidebar's *inner* edge, so "pull the divider
- * toward the edge the sidebar is docked to" is a leftward drag when docked left
- * and a rightward one when docked right. Mirroring therefore comes down to the
- * sign of the delta. While collapsed the divider hugs the docked edge and
- * describes a width of zero, so the same arithmetic works from either state.
- */
+/** How wide the sidebar becomes if the divider is dragged to `clientX`. The divider
+ *  always sits on the sidebar's *inner* edge, so "pull the divider toward the edge the
+ *  sidebar is docked to" is a leftward drag when docked left and a rightward one when
+ *  docked right — mirroring comes down to the sign of the delta. While collapsed the
+ *  divider hugs the docked edge and describes a width of zero, so the same arithmetic
+ *  works from either state. */
 export function dragWidth(
   startWidth: number,
   startX: number,
@@ -141,16 +124,12 @@ export function dragWidth(
   return startWidth + delta;
 }
 
-/**
- * Turn "where the divider would land" into an instruction.
- *
- * The expand threshold (`SIDEBAR_MIN`) is deliberately higher than the collapse
- * one (`SIDEBAR_COLLAPSE_AT`): with a single shared boundary, a pointer resting
- * on it flips state on every pixel of jitter.
- *
- * `collapsed` is read live rather than frozen at pointerdown, so one drag can
- * close the sidebar on the way in and reopen it on the way out.
- */
+/** Turn "where the divider would land" into an instruction. The expand threshold
+ *  (`SIDEBAR_MIN`) is deliberately higher than the collapse one
+ *  (`SIDEBAR_COLLAPSE_AT`): with a single shared boundary, a pointer resting on it flips
+ *  state on every pixel of jitter. `collapsed` is read live rather than frozen at
+ *  pointerdown, so one drag can close the sidebar on the way in and reopen it on the way
+ *  out. */
 export function resolveSidebarDrag(
   pointerWidth: number,
   collapsed: boolean,

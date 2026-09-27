@@ -1,7 +1,7 @@
 /* ============================================================
    Design tokens.
    Light and dark are the same shape: a tinted app background, white-ish
-   surfaces that float on it, soft blue for selection. Every component
+   surfaces that float on it, soft blue for highlights. Every component
    consumes these by name so the two themes never drift apart.
    ============================================================ */
 
@@ -39,7 +39,7 @@
   --danger: #cf3f3f;
   --danger-soft: rgba(207, 63, 63, 0.1);
   /* The one glyph that is tinted rather than monochrome: a folder row. It is an
-     alias, not a second blue — a folder sits next to blue selection fills and a
+     alias, not a second blue — a folder sits next to blue highlight fills and a
      blue focus ring, so any blue of its own would read as a near-miss. Because
      custom properties substitute lazily, this follows the dark block's
      `--accent` without being redeclared there. */

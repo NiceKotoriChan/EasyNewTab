@@ -1,20 +1,13 @@
 /**
  * Drag & drop for the bookmark tree — the only module that speaks
- * `@atlaskit/pragmatic-drag-and-drop`. Everything around it keeps calling
- * `computeDropPosition` / `computeMoveTarget` from `core/`, so the zone model
- * stays a tested pure function and the library stays replaceable.
+ * `@atlaskit/pragmatic-drag-and-drop`. It uses the library for three things
+ * HTML5 drag & drop cannot do: an offsettable drag image, autoscrolling an inner
+ * `overflow: auto` list, and the drop-target stack that says which nested row the
+ * pointer is really on. The zone model itself stays in `core/` as a tested pure
+ * function, so the library stays replaceable.
  *
- * The library earns its place on three things HTML5 drag & drop cannot do: a
- * drag image you can offset (`setCustomNativeDragPreview`), autoscrolling an
- * inner `overflow: auto` list, and knowing which row the pointer is actually on
- * when rows are nested (`dropTargetForElements` maintains that stack; the
- * hand-rolled version re-derived it from `event.target.closest(".row")`).
- * `canDrop()` also gives a row a supported way to refuse a drop, and
- * `dropEffect: none` keeps the cursor agreeing with the highlight.
- *
- * Left to the browser on purpose: how far the pointer must move before a drag
- * starts. Imposing our own threshold on top of the browser's does not fix a
- * twitchy click — it turns it into "the drag was cancelled and the click did not
+ * The drag threshold is left to the browser on purpose: a second threshold on top
+ * of it turns a twitchy click into "the drag was cancelled and the click did not
  * fire either", which is strictly worse.
  */
 import {
@@ -33,14 +26,9 @@ export type Cleanup = () => void;
  *  nested folder is one gesture instead of three. */
 const DWELL_MS = 600;
 
-/**
- * What every row carries, both as a drag source and as a drop target.
- *
- * The index signature is not decoration: the library types its payloads as an
- * open bag of `unknown`, and a closed interface is not assignable to that. It
- * costs nothing — `id` and `kind` keep their own types — and it keeps the two
- * keys this app relies on named in one place.
- */
+/** What every row carries, both as a drag source and as a drop target. The index
+ *  signature is required: the library types payloads as an open bag of `unknown`,
+ *  which a closed interface is not assignable to. */
 interface RowDragData {
   id: string;
   kind: NodeKind;
@@ -55,11 +43,9 @@ export interface RowHover {
   rect: DOMRect;
 }
 
-/**
- * Everything a row has to tell the tree. Read lazily through functions rather
- * than captured by value: the node object behind a row is replaced on every
- * reload, and the registration outlives it.
- */
+/** Everything a row has to tell the tree. Read lazily through functions rather
+ *  than captured by value: the node behind a row is replaced on every reload,
+ *  while the registration outlives it. */
 export interface RowRegistration {
   data: () => RowDragData;
   /** False while this row is the dragged node itself or lives in its subtree. */
@@ -67,17 +53,14 @@ export interface RowRegistration {
   /** A collapsed folder with children — the only row worth spring-loading open. */
   canExpand: () => boolean;
   onHover: (hover: RowHover) => void;
-  /** The pointer is no longer on this row. */
+  /** The pointer has left this row. */
   onLeave: () => void;
   /** Dwelt on a collapsed folder long enough to open it. */
   onDwell: () => void;
-  /**
-   * Whether the drag that brought the pointer here is still running. Checked
-   * just before spring-loading, and it has to be: hover a collapsed folder at
-   * 500ms and release the mouse — the timer set on entry is still pending, and
-   * without this it would fire 100ms after the drop and open a folder nobody is
-   * dragging into any more. The tree answers it; rows never need to.
-   */
+  /** Whether the drag that brought the pointer here is still running. Checked
+   *  just before spring-loading: release the mouse between entering a folder and
+   *  its dwell timer firing, and the timer would otherwise open a folder nobody
+   *  is dragging into any more. */
   isDragging?: () => boolean;
   onDragStart: () => void;
   /** The drag finished, however it finished. */
@@ -110,15 +93,11 @@ function zoneAt(
   };
 }
 
-/**
- * True when `element` is the innermost active drop target.
- *
- * Rows are nested — a bookmark inside "Dev" is a drop target whose parent
- * folder row is also one — and every active target receives every callback. The
- * stack is bubble-ordered, innermost first, so the top of it is the row the
- * pointer is actually on. Without this check the parent and the child would
- * both claim the indicator on the same event and it would flicker between them.
- */
+/** True when `element` is the innermost active drop target. Rows are nested, so a
+ *  row inside a folder is a target whose parent folder row is also one, and every
+ *  active target receives every callback. The stack is bubble-ordered (innermost
+ *  first), and without this check parent and child would both claim the indicator
+ *  on the same event and it would flicker. */
 function isInnermost(
   element: Element,
   dropTargets: readonly { element: Element }[],
@@ -126,13 +105,10 @@ function isInnermost(
   return dropTargets[0]?.element === element;
 }
 
-/**
- * Make one row draggable and droppable. Returns a combined cleanup.
- *
- * Despite the name this is one call on purpose: a row that can be picked up but
- * not dropped on, or the reverse, is never what the tree wants, and splitting
- * the registration would only let the two drift apart.
- */
+/** Make one row draggable and droppable, returning a combined cleanup. One call
+ *  on purpose: a row that can be picked up but not dropped on, or the reverse, is
+ *  never what the tree wants, and splitting the registration would let the two
+ *  drift apart. */
 export function wireRow(el: HTMLElement, reg: RowRegistration): Cleanup {
   let dwell: ReturnType<typeof setTimeout> | null = null;
 
@@ -155,18 +131,17 @@ export function wireRow(el: HTMLElement, reg: RowRegistration): Cleanup {
 
         setCustomNativeDragPreview({
           nativeSetDragImage,
-          // Grab point: a little in from the row's left edge, vertically
-          // centred. The default anchors the preview's top-left corner to the
-          // pointer, which reads as if the row were hanging off the cursor.
+          // Grab point: a little in from the left edge, vertically centred. The
+          // default anchors the preview's top-left corner to the pointer, which
+          // reads as if the row were hanging off the cursor.
           getOffset: ({ container }) => ({
             x: 16,
             y: container.getBoundingClientRect().height / 2,
           }),
           render: ({ container }) => {
-            // Clone the row rather than rebuilding it: the preview then matches
-            // the row in both themes, at its own depth, with its own icon and
-            // favicon, and stays correct if the row's markup changes.
-            // `onDragStart` has not run yet, so the clone is not dimmed.
+            // Clone the row rather than rebuild it, so the preview matches the
+            // row in both themes, at its own depth, with its own icon and
+            // favicon. `onDragStart` has not run yet, so the clone is undimmed.
             const ghost = el.cloneNode(true) as HTMLElement;
             ghost.classList.remove("dragging");
             ghost.classList.add("drag-ghost");
@@ -216,21 +191,19 @@ export function wireRow(el: HTMLElement, reg: RowRegistration): Cleanup {
 }
 
 interface DragWatchOptions {
-  /** The scrollable list, used to tell "the empty area" from "outside the panel". */
+  /** The scrollable list, for telling "the empty area" from "outside the panel". */
   container: () => HTMLElement | null;
   /** Commit a drop that landed on a row. */
   onMove: (dragId: string, targetId: string, position: DropPosition) => void;
-  /** Dropped in the blank space below the last row: send it to the end of the list. */
+  /** Dropped in the blank space below the last row: append to the end. */
   onAppend: (dragId: string) => void;
   /** The drag is over, however it ended. Drop every transient bit of state. */
   onFinish: () => void;
 }
 
-/**
- * The blank space under the tree — and *only* under it. A drop in the gap
- * between two rows lands on no target either, but treating that near-miss as
- * "append to the end" would move something the user never aimed at.
- */
+/** The blank space under the tree — and *only* under it. A drop in the gap between
+ *  two rows lands on no target either, but treating that near-miss as "append"
+ *  would move something the user never aimed at. */
 function isBelowLastRow(container: HTMLElement | null, clientY: number): boolean {
   if (!container) return false;
   const box = container.getBoundingClientRect();
@@ -240,17 +213,13 @@ function isBelowLastRow(container: HTMLElement | null, clientY: number): boolean
   return last ? clientY > last.getBoundingClientRect().bottom : false;
 }
 
-/**
- * One watcher per tree, owning the entire commit path.
- *
- * Deliberately *not* implemented as `onDrop` on each row. When rows are nested
- * the child and its parent folder both receive `onDrop`, the order between them
- * and this monitor is not a documented guarantee, and rows would each have to
- * defend against acting twice on the same drop. Here there is exactly one
- * decision, made from the final pointer position, and the geometry is
- * recomputed rather than reused: `onDrag` is throttled, so the last hover
- * update can be a frame or two stale — enough to pick the wrong third of a row.
- */
+/** One watcher per tree, owning the entire commit path. Deliberately *not* an
+ *  `onDrop` on each row: with nested rows the child and its parent folder both
+ *  receive `onDrop` in an undocumented order, and each would have to defend
+ *  against acting twice. Here a single decision is made from the final pointer
+ *  position, and the geometry is recomputed rather than reused — `onDrag` is
+ *  throttled, so the last hover can be a frame stale, enough to pick the wrong
+ *  third of a row. */
 function watchDrag(opts: DragWatchOptions): Cleanup {
   return monitorForElements({
     onDrop({ source, location }) {
@@ -276,15 +245,10 @@ function watchDrag(opts: DragWatchOptions): Cleanup {
   });
 }
 
-/**
- * Scroll the list when the pointer is dragged near the top or bottom.
- *
- * The trigger zone is the library's tuned default — `min(25% of the height,
- * 180px)` at each end, with a 400ms dampening window and a speed ramp that
- * starts at zero, so passing quickly near an edge does not yank the list. Only
- * the axis is pinned: `.scroll` is `overflow-x: hidden`, so a horizontal
- * autoscroll would have nothing to do but could still be engaged.
- */
+/** Scroll the list when the pointer is dragged near the top or bottom. Only the
+ *  axis is pinned — the trigger zone and ramp are the library's tuned defaults,
+ *  and `.scroll` is `overflow-x: hidden`, so a horizontal autoscroll would have
+ *  nothing to do but could still be engaged. */
 function makeTreeAutoScroll(el: HTMLElement): Cleanup {
   return autoScrollForElements({
     element: el,

@@ -1,32 +1,19 @@
 /**
- * The two decisions a touch long press makes, as pure functions.
- *
- * They are here rather than inline in `useLongPress` because both are the
- * difference between a menu that opens when it was asked for and one that opens
- * while the list is being scrolled: `isLongPressPointer` decides whether a press
- * is ours at all, and `movedBeyondSlop` decides whether the finger has already
- * left the press behind.
+ * The two decisions a touch long press makes, as pure functions: whether the
+ * press is ours at all, and whether the finger has already left it behind.
  */
 
-/** How long a finger has to rest before the press counts. Chrome's own is 500ms. */
+/** Chrome's own long press is 500ms. */
 export const LONG_PRESS_MS = 500;
 
-/**
- * How far the finger may drift and still be a press. A scroll view starts moving
- * on a couple of pixels, so this is well above "the finger twitched" and well
- * below "this is a scroll" — the band where the two are genuinely ambiguous is
- * where the menu is easier to dismiss than to live with.
- */
+/** How far the finger may drift and still count as a press. A scroll view starts
+ *  moving within a couple of pixels, so this sits above "the finger twitched" and
+ *  below "this is a scroll". */
 export const PRESS_SLOP = 10;
 
-/**
- * A mouse and a pen both have a right button, and a right-click already opens
- * the menu. Only a finger needs the stand-in.
- *
- * This is also what keeps a long press from fighting the tree's drag: the drag
- * adapter is mouse-driven, so arming a press for touch and nothing else leaves
- * the two gestures on separate inputs.
- */
+/** A mouse and a pen both have a right button, and a right-click already opens the
+ *  menu — only a finger needs the stand-in. This also keeps a long press from
+ *  fighting the tree's drag, which arrives on the mouse. */
 export function isLongPressPointer(pointerType: string): boolean {
   return pointerType === "touch";
 }

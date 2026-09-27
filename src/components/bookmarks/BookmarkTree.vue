@@ -2,28 +2,22 @@
 /**
  * Bookmark sidebar panel: tree, drag & drop.
  *
- * A left click is the whole gesture — `resolveRowActivation` decides whether it
- * opens a bookmark or folds a folder, and nothing is selected: the main area
- * keeps showing the search box whatever is clicked.
+ * A left click is the whole gesture — `resolveRowActivation` decides whether it opens
+ * a bookmark or folds a folder, and nothing is selected: the main area keeps showing
+ * the search box whatever is clicked. A folder row has a context menu (new folder /
+ * rename / delete), and so does the blank space below the tree, which is where a
+ * top-level folder comes from. A bookmark row has none — it opens on a click and
+ * deletes from its own button.
  *
- * A folder row has a context menu (new folder / rename / delete) and so does the
- * blank space below the tree, which is where a top-level folder comes from. A
- * bookmark row has none — it opens on a click and deletes from its own button,
- * so there is nothing left for a menu to offer it.
+ * Both menus have two ways in, because a touchscreen has no right button: a
+ * right-click and a long press. One press listener covers the whole tree rather than
+ * one per row — the rows are recursive and there can be hundreds of them, and a finger
+ * does not reliably stay on the row it started on. The search box appears above the
+ * tree only when asked for (`p`, then Esc or its ×), because a filter bar that is
+ * always there costs a row of the panel forever.
  *
- * Both of those menus have two ways in, because a touchscreen has no right
- * button: a right-click, and a long press. One press listener covers the whole
- * tree rather than one per row — the rows are recursive and there can be hundreds
- * of them, and a finger does not reliably stay on the row it started on.
- *
- * The search box appears above the tree only when asked for (`p`, then Esc or
- * its ×), because a filter bar that is always there costs a row of the panel
- * forever. It filters with `searchBookmarks`, which prunes the tree rather than
- * hiding rows.
- *
- * This component owns drag *state* — which node is in the air, which row the
- * pointer is on. The gestures live in `src/dnd/tree.ts`; the zone maths stays in
- * `core/` as a pure function.
+ * This component owns drag *state* — which node is in the air, which row the pointer
+ * is on. The gestures live in `src/dnd/tree.ts`; the zone maths stays in `core/`.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from "vue";
 import BookmarkRow from "./BookmarkNode.vue";
@@ -64,14 +58,10 @@ const container = ref<HTMLElement | null>(null);
 const pendingDelete = ref<BookmarkNode | null>(null);
 const searchInput = ref<HTMLInputElement | null>(null);
 
-/**
- * Put the caret in the search box.
- *
- * The box only exists while `searchOpen`, and that flag is flipped by the shell
- * rather than here — so the input has to be waited for. Mount is the other way
- * in: `p` pressed while the history panel was showing switches to this one, and
- * then the panel mounts with the box already open.
- */
+/** Put the caret in the search box. The box only exists while `searchOpen`, and that
+ *  flag is flipped by the shell rather than here, so the input has to be waited for.
+ *  Mount is the other way in: `p` pressed while the history panel was showing switches
+ *  to this one, and then the panel mounts with the box already open. */
 async function focusSearchInput(): Promise<void> {
   await nextTick();
   searchInput.value?.focus();
@@ -81,35 +71,28 @@ watch(searchOpen, (open) => {
   if (open) void focusSearchInput();
 });
 
-/**
- * The id being carried. Not part of the context: nothing renders from it, it
- * only feeds `blockedIds`. The row's own "am I the one in the air" styling is
- * local to the row, set from its drag start/end callbacks.
- */
+/** The id being carried. Not part of the context: nothing renders from it, it only
+ *  feeds `blockedIds`. The row's own "am I the one in the air" styling is local to the
+ *  row, set from its drag start/end callbacks. */
 const dragId = ref<string | null>(null);
 
 /** The row the pointer is over. Null means "no valid target right now". */
 const dropTarget = ref<DropTarget | null>(null);
 
-/**
- * Rows that have to say no to the current drag. Recomputed from the live tree,
- * so a node that was deleted mid-drag simply stops being blocked.
- */
+/** Rows that have to say no to the current drag. Recomputed from the live tree, so a
+ *  node that was deleted mid-drag simply stops being blocked. */
 const blockedIds = computed(() => {
   const id = dragId.value;
   return dragBlockedIds(id ? (findNode(id) ?? null) : null);
 });
 
-/**
- * The line between rows. Only meaningful for `before` / `after` — "inside" fills
- * the target row itself, which is a different outcome and so a different signal.
+/** The line between rows. Only meaningful for `before` / `after` — "inside" fills the
+ *  target row itself, which is a different outcome and so a different signal.
  *
- * Coordinates are converted into the scroller's *content* space rather than
- * pinned to the viewport: the row rects are captured while hovering, so a
- * viewport-fixed line would sit still while the list autoscrolled underneath it.
- * In content space it travels with the row for free, and this computed does not
- * re-run on scroll.
- */
+ *  Coordinates are converted into the scroller's *content* space rather than pinned to
+ *  the viewport: the row rects are captured while hovering, so a viewport-fixed line
+ *  would sit still while the list autoscrolled underneath it. In content space it
+ *  travels with the row for free, and this computed does not re-run on scroll. */
 const indicator = computed(() => {
   const target = dropTarget.value;
   const el = container.value;
@@ -127,12 +110,9 @@ const indicator = computed(() => {
   };
 });
 
-// --- Activation / open -----------------------------------------------
-
+// One click does the whole job: a folder folds/unfolds, a bookmark opens. Nothing is
+// selected, so the main area keeps showing the search box.
 function activateNode(node: BookmarkNode): void {
-  // One click does the whole job: a folder folds/unfolds, a bookmark opens.
-  // Nothing is selected, so the main area keeps showing the search box — the
-  // detail editor is reachable from the context menu instead.
   if (resolveRowActivation(node) === "toggle") {
     toggleExpanded(node.id);
     return;
@@ -153,21 +133,14 @@ async function deleteNode(node: BookmarkNode): Promise<void> {
   await removeNode(node);
 }
 
-// --- Context menu ----------------------------------------------------
-
-/**
- * A row's menu, anchored where the gesture happened.
- *
- * Coordinates rather than an event, because the two ways in are a right-click
- * and a long press and only the first of them has a `MouseEvent` to read them
- * from. The list itself is data (`core/menus.ts`) so that what a touchscreen is
- * and is not offered can be pinned without a browser.
- */
+/** A row's menu, anchored where the gesture happened. Coordinates rather than an event,
+ *  because the two ways in are a right-click and a long press and only the first has a
+ *  `MouseEvent` to read them from. The list itself is data (`core/menus.ts`) so that
+ *  what a touchscreen is and is not offered can be pinned without a browser. */
 function nodeContextMenu(x: number, y: number, node: BookmarkNode): void {
-  // Only a folder has a menu. A bookmark row still stops the event (see
-  // `BookmarkNode`), so a right-click on one opens nothing at all rather than
-  // falling through to the blank-space menu — "New folder" under a bookmark
-  // would be an odd thing to be offered.
+  // Only a folder has a menu. A bookmark row still stops the event (see `BookmarkNode`),
+  // so a right-click on one opens nothing rather than falling through to the
+  // blank-space menu — "New folder" under a bookmark would be an odd thing to offer.
   if (!isFolderNode(node)) return;
   openMenu(x, y, folderMenu(), (action) => void handleNodeAction(action, node));
 }
@@ -187,20 +160,16 @@ function blankMenu(x: number, y: number): void {
 }
 
 function onBlankContextMenu(event: MouseEvent): void {
-  // Row menus stop the event themselves; a right-click landing in the gap
-  // between two rows is still blank space and does open this one.
+  // Row menus stop the event themselves; a right-click landing in the gap between two
+  // rows is still blank space and does open this one.
   if ((event.target as HTMLElement).closest(".row")) return;
   blankMenu(event.clientX, event.clientY);
 }
 
-/**
- * The touch way into both menus above.
- *
- * One listener for the whole tree, and the point the finger stopped at is asked
- * what it was over: a row answers with its `data-node-id` — the same attribute
- * the drop maths already queries the rows for — and anything else is the blank
- * space.
- */
+/** The touch way into both menus above. One listener for the whole tree, and the point
+ *  the finger stopped at is asked what it was over: a row answers with its
+ *  `data-node-id` — the same attribute the drop maths already queries the rows for —
+ *  and anything else is the blank space. */
 const longPress = useLongPress((x, y) => {
   const row = document
     .elementFromPoint(x, y)
@@ -234,33 +203,27 @@ async function handleNodeAction(action: string, node: BookmarkNode): Promise<voi
   }
 }
 
-// --- Drag & drop -----------------------------------------------------
-
 function hoverRow(node: BookmarkNode, hover: RowHover): void {
   dropTarget.value = { id: node.id, position: hover.position, rect: hover.rect };
 }
 
 function leaveRow(node: BookmarkNode): void {
-  // Identity-guarded, and it has to be: rows are nested, so a parent folder row
-  // also receives a "leave" when the pointer moves onto one of its children.
-  // Clearing unconditionally would wipe the state the child had just set and
-  // the indicator would flicker.
+  // Identity-guarded, and it has to be: rows are nested, so a parent folder row also
+  // receives a "leave" when the pointer moves onto one of its children. Clearing
+  // unconditionally would wipe the state the child had just set and the indicator would
+  // flicker.
   if (dropTarget.value?.id === node.id) dropTarget.value = null;
 }
 
-/**
- * Hand a row to the drag adapter, and take over the drag's lifetime.
- *
- * The row's own callbacks are about the row (dimming itself while it is in the
- * air); the tree's are about the drag as a whole (which node is in the air,
- * which is why `blockedIds` can be computed at all).
- */
+/** Hand a row to the drag adapter, and take over the drag's lifetime. The row's own
+ *  callbacks are about the row (dimming itself while it is in the air); the tree's are
+ *  about the drag as a whole, which is why `blockedIds` can be computed at all. */
 function registerRow(el: HTMLElement, row: RowRegistration): Cleanup {
   return wireRow(el, {
     ...row,
-    // Answered here rather than by the row: the row has no idea whether the
-    // drag it is being hovered by is still alive, and a dwell timer that
-    // outlives its drag opens a folder nobody is dragging into.
+    // Answered here rather than by the row: the row has no idea whether the drag it is
+    // being hovered by is still alive, and a dwell timer that outlives its drag opens a
+    // folder nobody is dragging into.
     isDragging: () => dragId.value !== null,
     onDragStart: () => {
       dragId.value = row.data().id;
@@ -284,8 +247,8 @@ onMounted(() => {
     container: () => container.value,
     onMove: (draggedId, targetId, position) =>
       void moveNode(draggedId, targetId, position),
-    // Blank space under the last row: append to the top-level folder. The
-    // list's own end, which is what that gesture looks like it should do.
+    // Blank space under the last row: append to the top-level folder, which is what that
+    // gesture looks like it should do.
     onAppend: (draggedId) => void moveToEnd(draggedId),
     onFinish: () => {
       dragId.value = null;
@@ -316,10 +279,9 @@ provide(BOOKMARK_TREE, context);
 
 <template>
   <div class="bookmark-panel">
-    <!-- On demand only: `p` reveals it, Esc or the × puts it away and clears
-         the query. Never written to storage — a filter is a moment, not a
-         mode — and it survives a trip to the history panel the same way the
-         tree's own folds do. -->
+    <!-- On demand only: `p` reveals it, Esc or the × puts it away and clears the query.
+         Never written to storage — a filter is a moment, not a mode — and it survives a
+         trip to the history panel the same way the tree's own folds do. -->
     <div v-if="searchOpen" class="search">
       <Icon name="search" :size="13" class="search-icon" />
       <input
@@ -357,9 +319,9 @@ provide(BOOKMARK_TREE, context);
         Failed to load bookmarks
       </div>
       <div v-else-if="tree.length === 0" class="pane-empty">No bookmarks yet</div>
-      <!-- Checked before the rows, and only while a query is running: the
-           difference between "you have no bookmarks" and "none match" is the
-           whole reason the box is worth opening. -->
+      <!-- Checked before the rows, and only while a query is running: the difference
+           between "you have no bookmarks" and "none match" is the whole reason the box
+           is worth opening. -->
       <div v-else-if="searchActive && visibleTree.length === 0" class="pane-empty">
         No matches
       </div>
@@ -372,8 +334,8 @@ provide(BOOKMARK_TREE, context);
         />
       </template>
 
-      <!-- Inside the scroller on purpose: it is positioned in content space,
-           so it has to scroll with the rows it points at. -->
+      <!-- Inside the scroller on purpose: it is positioned in content space, so it has
+           to scroll with the rows it points at. -->
       <div
         v-if="indicator"
         class="drop-line"

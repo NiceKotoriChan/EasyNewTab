@@ -1,21 +1,8 @@
-/**
- * What a context menu offers, as data.
- *
- * Here rather than inline in the panels for the same reason `SHORTCUTS` lives
- * in its own module: the list is a statement about what the app can do, and it
- * is worth being able to pin without a browser, an event or a right-click.
- *
- * Only two things in the app have a menu at all, and both are about keeping the
- * tree's *structure*: a folder row, and the blank space under the tree. Nothing
- * else gets one —
- *
- * - A bookmark row: a click already opens it and the row's own button already
- *   deletes it. A menu would only be a second way to do those two things, and
- *   the second way is the one that has to be discovered.
- * - A history row: a click opens it, a button removes it. Same argument, and
- *   it is also why there is no "clear all" — the panel is a list to read and
- *   prune, not a place to run maintenance from.
- */
+/** What a context menu offers, as data — here rather than inline so it can be
+ *  pinned without a browser. Only structure gets a menu: a folder row, and the
+ *  blank space under the tree (the only way to make a top-level folder). A
+ *  bookmark or history row has none — a click opens it and a row button removes
+ *  it, so a menu would only be a second way to do both. */
 
 export interface MenuItem {
   label: string;
@@ -24,14 +11,8 @@ export interface MenuItem {
   danger?: boolean;
 }
 
-/**
- * A folder row.
- *
- * Ordered the way the work happens — make a child, fix its name, remove it.
- * Deliberately without dividers: three related actions on one folder are one
- * group, and a rule drawn between them would be decoration rather than a
- * boundary.
- */
+/** A folder row: make a child, fix its name, remove it. No dividers — three
+ *  actions on one folder are one group, not two. */
 export function folderMenu(): MenuItem[] {
   return [
     { label: "New folder", action: "new-folder" },
@@ -40,7 +21,7 @@ export function folderMenu(): MenuItem[] {
   ];
 }
 
-/** The blank space under the tree, which is where a top-level folder is made. */
+/** The blank space under the tree. */
 export function emptyTreeMenu(): MenuItem[] {
   return [{ label: "New folder", action: "new-folder" }];
 }
