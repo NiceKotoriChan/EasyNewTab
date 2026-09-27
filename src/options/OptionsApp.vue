@@ -4,13 +4,13 @@
  * preferences can be changed.
  *
  * Three sections, and the split is the point: **General** is the behaviour toggles,
- * **Layout** keeps the docking side to itself (it is about the shell, and it applies
- * again the moment the window is wide enough for side-by-side), and **Shortcuts** is
- * dropped on a touch device — a list of keys nothing there can press is worse than no
- * list. No Save button (every control writes on change) and no prose. The engine picker
- * is absent on purpose: the row under the new tab page's search box is authoritative.
- * `lastError` drives the alert strip — without it a write that did not land looks like
- * one that did.
+ * **Layout** keeps the docking side to itself, and **Shortcuts** documents the keys. The
+ * last two are each dropped on the axis that makes them useless — Layout while the window
+ * is narrow (stacked, there is no column to dock into) and Shortcuts on a touch device (a
+ * list of keys nothing there can press is worse than no list). General is always there. No
+ * Save button (every control writes on change) and no prose. The engine picker is absent
+ * on purpose: the row under the new tab page's search box is authoritative. `lastError`
+ * drives the alert strip — without it a write that did not land looks like one that did.
  */
 import Icon from "../components/ui/Icon.vue";
 import type { IconName } from "../components/ui/mdi-icons";
@@ -31,7 +31,7 @@ const POSITIONS: Array<{
 ];
 
 const { settings, ready, lastError, update } = useSettings();
-const { isTouch } = usePlatform();
+const { isCompact, isTouch } = usePlatform();
 
 function onOpenInNewTabChange(event: Event): void {
   void update({ openInNewTab: (event.target as HTMLInputElement).checked });
@@ -114,11 +114,11 @@ function setSidebarPosition(id: SidebarPosition): void {
           </div>
         </section>
 
-        <!-- Its own section rather than a third row under General: it is the
-             one setting about the shell itself, and it is the one that has to
-             be here on a touchscreen, where the rest of the shell has been
-             rearranged around it. -->
-        <section class="panel">
+        <!-- Its own section rather than a third row under General: it is the one
+             setting about the shell itself. Dropped while the window is narrow,
+             because stacked there is no column to dock into and the control would
+             change nothing on this window — widening brings it back. -->
+        <section v-if="!isCompact" class="panel">
           <div class="panel-head">
             <span class="panel-mark"><Icon name="panel-left" :size="15" /></span>
             <h2 class="panel-title">Layout</h2>

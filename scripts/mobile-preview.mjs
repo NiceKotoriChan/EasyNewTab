@@ -226,6 +226,8 @@ try {
   else fail("the divider is still in the mobile markup");
   if (!optionsMarkup.includes("Shortcuts")) ok("settings drops the shortcut section");
   else fail("settings still renders the shortcut section on touch");
+  if (!optionsMarkup.includes(">Layout<")) ok("and the docking section with it — stacked, there is no column to dock into");
+  else fail("settings still renders the docking section on a narrow window");
 
   pages = { newTabMarkup, optionsMarkup, historyMarkup };
 } finally {
@@ -277,7 +279,7 @@ const frames = [
   {
     id: "options",
     label: "设置页",
-    note: "通用 / 布局两个分组；触屏下整个「快捷键」分组不渲染",
+    note: "只剩「通用」：「布局」跟着窄屏走（堆叠时没有列可停靠），「快捷键」跟着触屏走（没有键盘可按）",
     doc: frameDocument({
       title: "Easy New Tab — Settings",
       css: css.options,

@@ -782,11 +782,10 @@ try {
   expectAbsent(optionsHtml, "Default engine", "the engine picker is gone from settings — the engine row on the new tab page owns it");
   expectAbsent(optionsHtml, "Bing", "and the grid of engines went with that section");
 
-  // The docking side has a section of its own, and the split is the point: it is
-  // the one preference about the shell rather than about bookmarks, and the one
-  // that has to survive onto a touchscreen. Counted per section, because a
-  // document-wide count would not notice a row moving between them — which is
-  // exactly the change being pinned here.
+  // The docking side has a section of its own, and the split is the point: it is the one
+  // preference about the shell rather than about bookmarks. Counted per section, because a
+  // document-wide count would not notice a row moving between them — which is exactly the
+  // change being pinned here. Which axes drop it is the "touch" section's job, below.
   expect(optionsHtml, ">Layout<", "the docking side is a section, not a third row under General");
   expectEqual(sectionRows(optionsHtml, "General")?.rows, 2, "General is the two behaviour toggles and nothing else");
   expectEqual(sectionRows(optionsHtml, "Layout")?.rows, 1, "and Layout is the docking side alone");
@@ -855,10 +854,10 @@ try {
   expectEqual(activeDockSide(await renderToString(createSSRApp(OptionsApp))), "right", "and follows that change when it is made from another tab");
 
   console.log("touch");
-  // The other axis. `isCompact` and `isTouch` answer different questions — how
-  // much room there is, and what the input can do — and this section sets only
-  // the second, because the case where they come apart is the one worth pinning:
-  // a narrow desktop window still has a keyboard, and must keep the list.
+  // The other axis. `isCompact` and `isTouch` answer different questions — how much room
+  // there is, and what the input can do — and the case where they come apart is the one
+  // worth pinning. Set one at a time with the other off: a device that is both would pass
+  // either way and prove nothing.
   isTouch.value = true;
   const touchOptions = await renderToString(createSSRApp(OptionsApp));
   expectAbsent(touchOptions, ">Shortcuts<", "touch: the shortcut list is not offered — there is no keyboard to press the keys on");
@@ -870,11 +869,18 @@ try {
 
   isCompact.value = true;
   isTouch.value = false;
+  const compactOptions = await renderToString(createSSRApp(OptionsApp));
   expect(
-    await renderToString(createSSRApp(OptionsApp)),
+    compactOptions,
     ">Shortcuts<",
     "narrow but not touch: the list stays — a narrow window still has a keyboard",
   );
+  // The docking side goes the other way. Stacked, the shell has no column to dock
+  // into, so this section would be a control that changes nothing on this window —
+  // and it is the axis that decides that, not the input: a wide touchscreen still
+  // gets it (the pass above), a narrow desktop window does not.
+  expectAbsent(compactOptions, ">Layout<", "narrow: the docking side is not offered — stacked, there is no column to dock into");
+  expectAbsent(compactOptions, 'aria-label="Sidebar position"', "narrow: and no segmented control is left behind in its place");
   isCompact.value = false;
 
   console.log("long press");
