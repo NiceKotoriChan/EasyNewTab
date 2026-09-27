@@ -7,6 +7,7 @@ concurrency:
   cancel-in-progress: true # 连推几次只跑最后一次
 permissions:
   contents: read # 最小权限
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -16,3 +17,18 @@ jobs:
         with: { node-version: 24, cache: npm }
       - run: npm ci # 不是 npm install
       - run: npm run verify
+      - name: 还原签名 key
+        run: |
+          echo "${{ secrets.CRX_KEY_B64 }}" | base64 -d > key.pem
+
+      - name: 打包
+        run: |
+          npx crx3 dist -o "easynewtab-${{ github.ref_name }}.crx" \
+                        -p key.pem \
+                        -z "easynewtab-${{ github.ref_name }}.zip" \
+                        --forceDateTime 0
+
+      - name: 发 Release
+        run: gh release create "$GITHUB_REF_NAME" \
+          easynewtab-*.crx easynewtab-*.zip --generate-notes
+        env: { GH_TOKEN: "${{ github.token }}" }

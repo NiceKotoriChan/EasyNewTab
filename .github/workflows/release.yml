@@ -1,0 +1,32 @@
+name: Release
+on:
+  push: { tags: ["v*"] }
+permissions:
+  contents: write # 只有这里需要写权限
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: 24, cache: npm }
+      - run: npm ci
+      - run: npm run verify # tag 也可能指向坏 commit，先验再发
+
+      - name: 版本号三处对齐
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG=$(node -p "require('./package.json').version")
+          MAN=$(node -p "require('./public/manifest.json').version")
+          if [ "$TAG" != "$PKG" ] || [ "$TAG" != "$MAN" ]; then
+            echo "tag=$TAG package=$PKG manifest=$MAN 不一致，不发"; exit 1
+          fi
+
+      - name: 打包（注意 zip 根目录）
+        run: cd dist && zip -r "$GITHUB_WORKSPACE/easynewtab-${{ github.ref_name }}.zip" .
+
+      - name: 发 Release
+        run: gh release create "$GITHUB_REF_NAME" \
+          "easynewtab-${{ github.ref_name }}.zip" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
