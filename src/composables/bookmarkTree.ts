@@ -23,11 +23,6 @@ export interface DropTarget {
 export interface BookmarkTreeContext {
   isExpanded(id: string): boolean;
   toggleExpanded(id: string): void;
-  /**
-   * Id of the row whose details the main area is showing. Only ever set from a
-   * context menu — a plain click opens or folds, it never selects.
-   */
-  selectedId: ComputedRef<string | null>;
   /** The row under the pointer, or null. */
   dropTarget: Ref<DropTarget | null>;
   /**
@@ -40,7 +35,8 @@ export interface BookmarkTreeContext {
   /**
    * A row's context menu, anchored at a point. Coordinates rather than an event
    * because the tree also opens it by long press, which has no mouse event to
-   * read them from — see `useLongPress`.
+   * read them from — see `useLongPress`. Only a folder has a menu; for anything
+   * else this returns without opening one.
    */
   nodeContextMenu(x: number, y: number, node: BookmarkNode): void;
   deleteNode(node: BookmarkNode): void;

@@ -1,105 +1,87 @@
 /**
  * What the two context menus offer.
  *
- * The lists are the only description of what the app can do to a bookmark, and
- * one entry is conditional on the reader rather than on the data: the detail
- * editor replaces the search box in the main area, which a stacked touch shell
- * does not have. Getting that backwards is invisible — the entry would still
- * render, and open something with nowhere to go.
+ * The lists are the only description of what the app can do to a bookmark's
+ * *structure*, and they are deliberately short: a folder row and the blank space
+ * under the tree, and nothing else. A bookmark row and every history row have no
+ * menu at all — the things they can do are on the row itself.
+ *
+ * That makes the interesting assertions the negative ones. "Rename is still
+ * there" cannot regress quietly; "the detail entry did not come back" can, and
+ * it would come back as a menu that opens something with nowhere to go.
  */
 
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  bookmarkMenu,
-  emptyHistoryMenu,
-  emptyTreeMenu,
-  historyMenu,
-} from "../src/core/menus.ts";
+import { emptyTreeMenu, folderMenu } from "../src/core/menus.ts";
 
-const withDetails = { showDetails: true };
-const withoutDetails = { showDetails: false };
+/**
+ * Every action either menu may hand out. Adding one is a deliberate act, so it
+ * has to be added here too — which is the point: this set is what keeps
+ * `details`, `open` and `clear` retired (they are all still reachable by other
+ * means, or were removed on purpose).
+ */
+const ALLOWED_ACTIONS = ["new-folder", "rename", "delete"];
 
-test("a bookmark row offers the four things a click cannot do", () => {
+test("a folder row offers make, rename, remove — in the order the work happens", () => {
   assert.deepEqual(
-    bookmarkMenu({ folder: false }, withDetails).map((item) => item.action),
-    ["open", "details", "rename", "delete"],
+    folderMenu().map((item) => item.action),
+    ["new-folder", "rename", "delete"],
+  );
+  assert.deepEqual(
+    folderMenu().map((item) => item.label),
+    ["New folder", "Rename", "Delete"],
   );
 });
 
-test("a folder row swaps open for new-folder and keeps the rest", () => {
-  assert.deepEqual(
-    bookmarkMenu({ folder: true }, withDetails).map((item) => item.action),
-    ["new-folder", "details", "rename", "delete"],
-  );
-});
-
-test("without a detail view the entry is absent, not disabled", () => {
-  // Absent, because there is nothing to explain: a greyed-out row would say
-  // "this exists but you may not have it", which is not what is true.
-  for (const folder of [false, true]) {
-    const actions = bookmarkMenu({ folder }, withoutDetails).map(
-      (item) => item.action,
-    );
-    assert.equal(actions.includes("details"), false);
-    // And nothing else moved with it.
-    assert.equal(actions.includes("rename"), true);
-    assert.equal(actions.includes("delete"), true);
-  }
-});
-
-test("the row that opens a menu is not the row that deletes", () => {
-  const items = bookmarkMenu({ folder: false }, withDetails);
-  const remove = items.find((item) => item.action === "delete");
-  assert.equal(remove?.danger, true);
-  // A divider above it, so the destructive entry is not one slip away from
-  // "Rename" — the two are adjacent and both open a prompt.
-  assert.equal(remove?.separatorBefore, true);
-  // The delete confirmation dialog carries the reassurance; the row does not
-  // need to repeat it.
-  assert.equal(remove?.label, "Delete");
-});
-
-test("a history row offers open, details and remove", () => {
-  assert.deepEqual(
-    historyMenu(withDetails).map((item) => item.action),
-    ["open", "details", "remove"],
-  );
-  assert.deepEqual(
-    historyMenu(withoutDetails).map((item) => item.action),
-    ["open", "remove"],
-  );
-  // Clearing one entry is destructive, and it is the last row of three.
-  const remove = historyMenu(withDetails)[2];
+test("delete is the dangerous one, and it is last", () => {
+  const items = folderMenu();
+  const remove = items[items.length - 1];
+  assert.equal(remove.action, "delete");
   assert.equal(remove.danger, true);
-  assert.equal(remove.separatorBefore, true);
+  // Nothing else in the app is a red menu row, so a stray `danger` is a
+  // misfired red rather than a second destructive action.
+  assert.equal(
+    items.filter((item) => item.danger).length,
+    1,
+  );
 });
 
-test("the blank space under each list has exactly one command", () => {
-  // Empty space has no node and no URL, so there is no detail view and no open —
-  // only "make one here" and "clear the lot".
+test("the blank space under the tree makes a top-level folder", () => {
   assert.deepEqual(
     emptyTreeMenu().map((item) => item.action),
     ["new-folder"],
   );
-  assert.deepEqual(
-    emptyHistoryMenu().map((item) => item.action),
-    ["clear"],
-  );
-  assert.equal(emptyHistoryMenu()[0].danger, true);
+  // Creating one is not destructive, so it is not painted as though it were.
+  assert.equal(emptyTreeMenu()[0].danger, undefined);
+});
+
+test("no menu offers anything a click or a row button already does", () => {
+  // `details` / `open` / `clear` are the retired entries. Absent, not disabled:
+  // a greyed-out row would say "this exists but you may not have it", which is
+  // not what is true.
+  for (const item of [...folderMenu(), ...emptyTreeMenu()]) {
+    assert.ok(
+      ALLOWED_ACTIONS.includes(item.action),
+      `unexpected menu action: ${item.action}`,
+    );
+  }
 });
 
 test("no menu hands out an empty list", () => {
   // `useContextMenu.open` treats an empty list as "nothing to show"; a builder
   // that can return one is a menu that silently does nothing.
-  for (const menu of [
-    bookmarkMenu({ folder: false }, withoutDetails),
-    bookmarkMenu({ folder: true }, withoutDetails),
-    historyMenu(withoutDetails),
-    emptyTreeMenu(),
-    emptyHistoryMenu(),
-  ]) {
+  for (const menu of [folderMenu(), emptyTreeMenu()]) {
     assert.ok(menu.length > 0);
+  }
+});
+
+test("no menu draws a divider", () => {
+  // Three related actions on one folder are one group. The separator field is
+  // gone from `MenuItem` entirely, so this is really a check that it has not
+  // been reintroduced as an ad-hoc property nobody types.
+  for (const item of [...folderMenu(), ...emptyTreeMenu()]) {
+    assert.equal("separatorBefore" in item, false);
   }
 });

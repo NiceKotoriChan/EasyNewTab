@@ -3,16 +3,18 @@
  * Bookmark sidebar panel: tree, drag & drop.
  *
  * A left click is the whole gesture — `resolveRowActivation` decides whether it
- * opens a bookmark or folds a folder. It never selects, so the search box in the
- * main area is never swapped out from under a click; the detail editor lives
- * behind the row's context menu.
+ * opens a bookmark or folds a folder, and nothing is selected: the main area
+ * keeps showing the search box whatever is clicked.
  *
- * The menu has two ways in, because a touchscreen has no right button: a
- * right-click, and a long press on a row or on the blank space below the tree
- * (which is where a top-level folder comes from). One press listener covers the
- * whole tree rather than one per row — the rows are recursive and there can be
- * hundreds of them, and a finger does not reliably stay on the row it started
- * on.
+ * A folder row has a context menu (new folder / rename / delete) and so does the
+ * blank space below the tree, which is where a top-level folder comes from. A
+ * bookmark row has none — it opens on a click and deletes from its own button,
+ * so there is nothing left for a menu to offer it.
+ *
+ * Both of those menus have two ways in, because a touchscreen has no right
+ * button: a right-click, and a long press. One press listener covers the whole
+ * tree rather than one per row — the rows are recursive and there can be hundreds
+ * of them, and a finger does not reliably stay on the row it started on.
  *
  * The search box appears above the tree only when asked for (`p`, then Esc or
  * its ×), because a filter bar that is always there costs a row of the panel
@@ -30,11 +32,9 @@ import Icon from "../ui/Icon.vue";
 import { useBookmarks } from "@/composables/useBookmarks";
 import { useContextMenu } from "@/composables/useContextMenu";
 import { useLongPress } from "@/composables/useLongPress";
-import { usePlatform } from "@/composables/usePlatform";
-import { useSelection } from "@/composables/useSelection";
 import { useSettings } from "@/composables/useSettings";
 import { BOOKMARK_TREE, type BookmarkTreeContext, type DropTarget } from "@/composables/bookmarkTree";
-import { bookmarkMenu, emptyTreeMenu } from "@/core/menus";
+import { emptyTreeMenu, folderMenu } from "@/core/menus";
 import { dragBlockedIds, isFolder as isFolderNode, resolveRowActivation, type BookmarkNode } from "@/core/bookmarks";
 import { watchTree, wireRow, type Cleanup, type RowHover, type RowRegistration } from "@/dnd/tree";
 
@@ -57,9 +57,7 @@ const {
   rename,
   removeNode,
 } = useBookmarks();
-const { selection, select, clear } = useSelection();
 const { settings } = useSettings();
-const { isTouch } = usePlatform();
 const { open: openMenu } = useContextMenu();
 
 const container = ref<HTMLElement | null>(null);
@@ -129,11 +127,6 @@ const indicator = computed(() => {
   };
 });
 
-const selectedId = computed(() => {
-  const sel = selection.value;
-  return sel?.kind === "bookmark" ? sel.id : null;
-});
-
 // --- Activation / open -----------------------------------------------
 
 function activateNode(node: BookmarkNode): void {
@@ -157,7 +150,6 @@ function openNode(node: BookmarkNode): void {
 }
 
 async function deleteNode(node: BookmarkNode): Promise<void> {
-  if (selectedId.value === node.id) clear();
   await removeNode(node);
 }
 
@@ -172,15 +164,12 @@ async function deleteNode(node: BookmarkNode): Promise<void> {
  * and is not offered can be pinned without a browser.
  */
 function nodeContextMenu(x: number, y: number, node: BookmarkNode): void {
-  openMenu(
-    x,
-    y,
-    bookmarkMenu(
-      { folder: isFolderNode(node) },
-      { showDetails: !isTouch.value },
-    ),
-    (action) => void handleNodeAction(action, node),
-  );
+  // Only a folder has a menu. A bookmark row still stops the event (see
+  // `BookmarkNode`), so a right-click on one opens nothing at all rather than
+  // falling through to the blank-space menu — "New folder" under a bookmark
+  // would be an odd thing to be offered.
+  if (!isFolderNode(node)) return;
+  openMenu(x, y, folderMenu(), (action) => void handleNodeAction(action, node));
 }
 
 /** The blank space under the tree — where a top-level folder is made. */
@@ -224,12 +213,6 @@ const longPress = useLongPress((x, y) => {
 
 async function handleNodeAction(action: string, node: BookmarkNode): Promise<void> {
   switch (action) {
-    case "open":
-      openNode(node);
-      break;
-    case "details":
-      select({ kind: "bookmark", id: node.id });
-      break;
     case "new-folder": {
       const name = prompt("Folder name:");
       if (!name) return;
@@ -319,7 +302,6 @@ onBeforeUnmount(() => {
 const context: BookmarkTreeContext = {
   isExpanded,
   toggleExpanded,
-  selectedId,
   dropTarget,
   blockedIds,
   activate: activateNode,
@@ -330,13 +312,6 @@ const context: BookmarkTreeContext = {
   leaveRow,
 };
 provide(BOOKMARK_TREE, context);
-
-// Drop a stale selection if the bookmarked node disappears (deleted here, or
-// synced away from another device).
-watch(tree, () => {
-  const sel = selection.value;
-  if (sel?.kind === "bookmark" && !findNode(sel.id)) clear();
-});
 </script>
 
 <template>

@@ -6,7 +6,7 @@
  * `resolveRowActivation`). No double click and no selection: clicking the sidebar
  * must never take the main area away from the search box.
  *
- * Expansion and the selected id come from the tree context. Row height is a fixed
+ * Expansion and the drop state come from the tree context. Row height is a fixed
  * `--row-h` so the drop-zone maths in the tree stays predictable.
  *
  * The row carries no drag logic: it hands its element to the tree once on mount
@@ -29,7 +29,6 @@ const dragging = ref(false);
 const isFolder = computed(() => !props.node.url);
 const hasChildren = computed(() => (props.node.children?.length ?? 0) > 0);
 const expanded = computed(() => ctx.isExpanded(props.node.id));
-const isSelected = computed(() => ctx.selectedId.value === props.node.id);
 const isBlocked = computed(() => ctx.blockedIds.value.has(props.node.id));
 const isDropInside = computed(
   () =>
@@ -93,7 +92,6 @@ onBeforeUnmount(() => {
       ref="row"
       class="row"
       :class="{
-        'is-selected': isSelected,
         'is-drop-inside': isDropInside,
         'is-blocked': isBlocked,
         dragging,
@@ -128,8 +126,11 @@ onBeforeUnmount(() => {
 
       <span class="label">{{ props.node.title || props.node.url }}</span>
 
-      <!-- Delete is deliberately not offered for folders: removing a branch
-           of the tree should not be one stray click away. -->
+      <!-- The row's only delete. Folders are deliberately not offered one:
+           removing a branch of the tree should not be one stray click away. It
+           is also why the folder menu's Delete is the confirmed one, and this
+           is not — what can be reached by accident has to be the smaller
+           thing. -->
       <button
         v-if="!isFolder"
         type="button"
@@ -170,11 +171,6 @@ onBeforeUnmount(() => {
 
 .row:hover {
   background: var(--hover-bg);
-}
-
-.row.is-selected {
-  background: var(--selection-bg);
-  color: var(--selection-fg);
 }
 
 /* The node is going *into* this folder, which is a different outcome from the
@@ -220,10 +216,6 @@ onBeforeUnmount(() => {
   color: var(--text);
 }
 
-.row.is-selected .twisty {
-  color: inherit;
-}
-
 .twisty.is-empty {
   cursor: inherit;
 }
@@ -239,17 +231,11 @@ onBeforeUnmount(() => {
   color: var(--icon-folder);
 }
 
-.row.is-selected .lead.is-folder {
-  color: inherit;
-}
-
 .label {
   flex: 1;
   min-width: 0;
   /* 14px to match the history panel's row label: the two panels are siblings in
-     the same column, so a different size in each reads as a bug. The detail
-     views behind the context menu are deliberately still smaller (12.5px) —
-     they are a form, not a list. */
+     the same column, so a different size in each reads as a bug. */
   font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
@@ -275,7 +261,12 @@ onBeforeUnmount(() => {
   color: var(--danger);
 }
 
-.row.is-selected .remove {
-  color: inherit;
+/* A cursor reveals the button on hover; a finger has no hover, so there it is
+   simply always there. Without this the row would have no delete at all on a
+   touchscreen, because the button is the only one it has. */
+@media (pointer: coarse) {
+  .remove {
+    display: grid;
+  }
 }
 </style>

@@ -18,7 +18,7 @@
 
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { createSSRApp } from "vue";
+import { createSSRApp, h } from "vue";
 import { renderToString } from "@vue/server-renderer";
 import {
   createSsrServer,
@@ -175,6 +175,23 @@ try {
   const { default: OptionsApp } = await server.ssrLoadModule(
     "/src/options/OptionsApp.vue",
   );
+  const { default: SidePanel } = await server.ssrLoadModule(
+    "/src/components/layout/SidePanel.vue",
+  );
+  const { default: HistoryList } = await server.ssrLoadModule(
+    "/src/components/history/HistoryList.vue",
+  );
+
+  // The history panel, inside its real chrome with the tab switched to it.
+  // App.vue decides which panel to mount from `activeView`, and it only ever
+  // reads that in `onMounted` — which does not run here, so a rendered `App`
+  // always shows the bookmarks panel. Driving the two components directly is
+  // what makes the history rows visible in the snapshot at all, and the rows are
+  // where the delete button lives.
+  const HistoryPanel = {
+    render: () =>
+      h(SidePanel, { active: "history" }, { default: () => h(HistoryList) }),
+  };
 
   // The stores hydrate asynchronously on first use, and the first render is
   // what starts those reads. Rendering once and looking at it would capture the
@@ -183,6 +200,7 @@ try {
   // kick the reads off, let them settle, then render the shape worth looking at.
   await renderToString(createSSRApp(NewTabApp));
   await renderToString(createSSRApp(OptionsApp));
+  await renderToString(createSSRApp(HistoryPanel));
   await new Promise((resolve) => setTimeout(resolve, 0));
 
   const newTabMarkup = await renderToString(createSSRApp(NewTabApp));
@@ -195,6 +213,13 @@ try {
   if (!optionsMarkup.includes("Loading…")) ok("the settings store has finished loading");
   else fail("the settings page is still showing its loading state");
 
+  const historyMarkup = await renderToString(createSSRApp(HistoryPanel));
+  ok("the history panel renders");
+  if (historyMarkup.includes('aria-label="Remove from history"')) ok("and every row carries its own delete button");
+  else fail("the history rows have no delete button — the snapshot would show rows with no action at all");
+  if (!historyMarkup.includes('role="menu"')) ok("with no menu rendered alongside them");
+  else fail("a context menu is in the history markup");
+
   // The preview is only worth looking at if it really is the phone shape. A
   // silent regression back to the desktop shell would otherwise produce a
   // convincing picture of the wrong thing.
@@ -205,7 +230,7 @@ try {
   if (!optionsMarkup.includes("Shortcuts")) ok("settings drops the shortcut section");
   else fail("settings still renders the shortcut section on touch");
 
-  pages = { newTabMarkup, optionsMarkup };
+  pages = { newTabMarkup, optionsMarkup, historyMarkup };
 } finally {
   await server.close();
 }
@@ -219,6 +244,7 @@ const css = await readBuiltCss();
 for (const [label, markup, sheet] of [
   ["new tab", pages.newTabMarkup, css.newtab],
   ["settings", pages.optionsMarkup, css.options],
+  ["history", pages.historyMarkup, css.newtab],
 ]) {
   const inMarkup = scopedIdsInMarkup(markup);
   const inCss = scopedIdsInCss(sheet);
@@ -234,11 +260,21 @@ const frames = [
   {
     id: "newtab",
     label: "新标签页",
-    note: "搜索卡片在上、书签/历史在下方；时钟与常用网站不参与",
+    note: "搜索卡片在上、书签/历史在下方；目录行没有删除按钮，书签行才有",
     doc: frameDocument({
       title: "New Tab",
       css: css.newtab,
       markup: pages.newTabMarkup,
+    }),
+  },
+  {
+    id: "history",
+    label: "历史面板",
+    note: "每行一个删除按钮；没有右键菜单，也没有「清空全部历史」",
+    doc: frameDocument({
+      title: "History",
+      css: css.newtab,
+      markup: pages.historyMarkup,
     }),
   },
   {
@@ -293,8 +329,9 @@ const gallery = `<!doctype html>
 <header>
   <h1>Easy New Tab — 移动端快照</h1>
   <p class="lede">
-    下面两帧是 ${PHONE.width}×${PHONE.height} 的真实视口，内容是把放大后的应用组件在服务端渲染成「窄屏 + 触屏」状态后，配真正打包出来的样式表得到的。
-    宽度相关的媒体查询由浏览器按 ${PHONE.width}px 正常求值；触屏相关的那几条规则在本页里被强制打开（桌面浏览器无法报告 coarse 指针）。
+    下面三帧都是 ${PHONE.width}×${PHONE.height} 的真实视口，内容是把应用组件在服务端渲染成「窄屏 + 触屏」状态后，配真正打包出来的样式表得到的。
+    宽度相关的媒体查询由浏览器按 ${PHONE.width}px 正常求值；触屏相关的那几条规则在本页里被强制打开（桌面浏览器无法报告 coarse 指针），
+    所以每行的删除按钮在这里是常显的 —— 那正是触屏上的样子。
   </p>
 </header>
 <div class="stage">

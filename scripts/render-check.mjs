@@ -287,7 +287,7 @@ try {
   expectAbsent(firstPass, "is-right", "the sidebar docks left until the setting says otherwise");
   expect(firstPass, 'class="sidebar"', "the sidebar renders (and stays mounted, see below)");
   expectAbsent(firstPass, 'aria-label="Hide sidebar"', "and carries no collapse button either");
-  expect(firstPass, "search-field", "the main area is the search box — nothing is selected by default");
+  expect(firstPass, "search-field", "the main area is the search box — a sidebar click cannot take it away");
   // Folding is per-row: the tree carries no expand-all/collapse-all affordance.
   expect(firstPass, "DuckDuckGo", "hero search box lists the other engines");
   expect(firstPass, 'aria-label="Search engine"', "engine row is a labelled group");
@@ -359,24 +359,28 @@ try {
   // `expandedIds` anyway — it is the case that separates a glyph keyed on
   // `expanded` from one keyed on "expanded *and* has something to show".
   expectEqual(rowGlyph(secondPass, "2"), mdiGlyph("folder"), "an empty folder reads as shut even though the sweep opened it");
-  // And the tint has exactly one home. Both call sites ask for the token by
-  // name; a hex literal at either one is how they drifted apart the first time
-  // (two files, two copies of a colour that was not the shipped one). CSS is
-  // invisible to an SSR render, so the sources are what has to be read.
+  // A bookmark row's delete is a button on the row, not a menu entry, so it has
+  // to be in the markup. The folder rows deliberately have none — a branch of the
+  // tree should not be one stray click away — which is also why the folder menu's
+  // Delete is the one that asks for confirmation.
+  expect(secondPass, 'aria-label="Delete bookmark"', "a bookmark row carries its own delete button");
+
+  // And the tint has exactly one home. The call sites ask for the token by
+  // name; a hex literal at one of them is how they drifted apart the first time
+  // (two definitions, the second of which was not the shipped colour). CSS is
+  // invisible to an SSR render, so the source is what has to be read.
   const tokensCss = await readSource(
     new URL("../src/styles/tokens.css", import.meta.url),
     "utf8",
   );
   expectEqual((tokensCss.match(/--icon-folder:/g) ?? []).length, 1, "the folder tint is defined once, as a token");
   expect(tokensCss, "--icon-folder: var(--accent)", "and it aliases the app's accent rather than inventing a second blue");
-  for (const file of ["BookmarkNode.vue", "BookmarkDetail.vue"]) {
-    const source = await readSource(
-      new URL(`../src/components/bookmarks/${file}`, import.meta.url),
-      "utf8",
-    );
-    expect(source, "var(--icon-folder)", `${file} takes the folder tint from the token`);
-    expectAbsent(source, "color: #", `${file} hard-codes no colour of its own`);
-  }
+  const nodeSource = await readSource(
+    new URL("../src/components/bookmarks/BookmarkNode.vue", import.meta.url),
+    "utf8",
+  );
+  expect(nodeSource, "var(--icon-folder)", "BookmarkNode.vue takes the folder tint from the token");
+  expectAbsent(nodeSource, "color: #", "BookmarkNode.vue hard-codes no colour of its own");
   // Rows are no longer native drag sources: `draggable="true"` and its
   // dragstart/dragover/drop handlers were replaced by the adapter in
   // `src/dnd/tree.ts`, which is what gives the tree a drag image it controls,
@@ -519,8 +523,10 @@ try {
   expect(wideAgain, 'aria-label="Resize sidebar"', "divider and all");
 
   console.log("click contract");
-  // A left click is the whole gesture and it is NOT selection — the sidebar
-  // must not be able to take the search box away from the main area.
+  // A left click is the whole gesture: it opens a bookmark or folds a folder,
+  // and there is no state it can put the main area into. Selection used to be
+  // the counterexample and is gone — see "no detail view" below for why the two
+  // halves of it are pinned together.
   //
   // Folding a folder is the only gesture that changes what the panel shows
   // (the expand-all button that used to do it in one go is gone), so that is
@@ -538,7 +544,7 @@ try {
   expectEqual(rowGlyph(foldPass, "f1"), mdiGlyph("folder-outline"), "opening that same folder swaps it to the hollow glyph");
   expect(foldPass, 'data-action="toggle"', "a folder row declares that a click folds it");
   expect(foldPass, 'data-action="open"', "a bookmark row declares that a click opens it — no double click needed");
-  expect(foldPass, "search-field", "after a click the main area is still the search box (nothing was selected)");
+  expect(foldPass, "search-field", "after a click the main area is still the search box");
 
   console.log("sidebar search");
   // `p` reveals this box, Esc closes it. Neither key can be fired here — there
@@ -612,7 +618,6 @@ try {
     app.provide(BOOKMARK_TREE, {
       isExpanded: () => false,
       toggleExpanded: () => {},
-      selectedId: ref(null),
       dropTarget: ref(null),
       blockedIds: ref(new Set()),
       activate: () => {},
@@ -643,15 +648,36 @@ try {
   });
   expectAbsent(beforeRow, "is-drop-inside", "a drop between rows uses the line instead — the two outcomes stay distinct");
 
-  console.log("detail view");
-  // The detail editor still exists, but only a context menu can ask for it.
-  const { useSelection } = await server.ssrLoadModule("/src/composables/useSelection.ts");
-  const selection = useSelection();
-  selection.select({ kind: "bookmark", id: "b1" });
-  const detailPass = await renderToString(createSSRApp(App));
-  expect(detailPass, "Location", "the detail editor renders when it is asked for");
-  expectAbsent(detailPass, "search-field", "and only then does it take the main area over");
-  selection.clear();
+  console.log("no detail view");
+  // The detail editors are gone, and so is the selection state that drove them.
+  // Their only way in was a menu entry ("Edit details" / "Details"), and the two
+  // menus that carried it are gone as well — a folder's menu is make/rename/
+  // remove, and a history row has no menu at all. Pinned here rather than left to
+  // the type checker, because the failure is silent: a stray import would mount a
+  // pane that nothing in the app can ever ask for, and every pass above would
+  // still be green.
+  for (const gone of [
+    "src/components/bookmarks/BookmarkDetail.vue",
+    "src/components/history/HistoryDetail.vue",
+    "src/composables/useSelection.ts",
+  ]) {
+    const exists = await readSource(
+      new URL(`../${gone}`, import.meta.url),
+      "utf8",
+    ).then(
+      () => true,
+      () => false,
+    );
+    expectEqual(exists, false, `${gone} stays deleted`);
+  }
+  // And the shell no longer has anything to swap the search card out with: it
+  // imports no detail view, so the main area is the search box in every pass
+  // above — not by state, but because there is no other branch left.
+  expectAbsent(
+    await readSource("src/newtab/App.vue", "utf8"),
+    "Detail.vue",
+    "the shell imports no detail view",
+  );
 
   console.log("history panel");
   const { default: HistoryList } = await server.ssrLoadModule(
@@ -662,6 +688,12 @@ try {
   const historyHtml = await renderToString(createSSRApp(HistoryList));
   expect(historyHtml, "Today", "history list groups entries by day");
   expect(historyHtml, "Example", "history list renders an entry");
+  // The row's delete is the whole of its second action, so it has to be in the
+  // markup rather than depending on a menu the panel no longer has. It is a real
+  // render assertion, unlike the source reads above: this one breaks if the
+  // button stops being emitted at all.
+  expect(historyHtml, 'aria-label="Remove from history"', "each history row carries its own delete button");
+  expectAbsent(historyHtml, 'role="menu"', "and no menu is rendered with it");
 
   console.log("welcome pane");
   const { default: WelcomePane } = await server.ssrLoadModule(
@@ -855,8 +887,8 @@ try {
   // The gesture has no markup to look at, and there is no DOM in this process to
   // fire a touch at. What can be pinned is the half of it that lives here — which
   // pointers arm it (`tests/gestures.test.ts` covers the rest of the decision) —
-  // plus the one thing the two ways in have to agree on: that a touchscreen is
-  // offered the same menu minus the entry it has nowhere to put.
+  // plus the thing the two ways in have to agree on: which rows have a menu at
+  // all, and what is on it.
   const { isLongPressPointer } = await server.ssrLoadModule(
     "/src/core/gestures.ts",
   );
@@ -871,29 +903,67 @@ try {
     "and for nothing else — the tree's drag is a mouse gesture and would lose that press",
   );
 
-  const { bookmarkMenu, historyMenu } = await server.ssrLoadModule(
-    "/src/core/menus.ts",
-  );
+  const menus = await server.ssrLoadModule("/src/core/menus.ts");
   const actions = (items) => items.map((item) => item.action).join(",");
   expectEqual(
-    actions(historyMenu({ showDetails: false })),
-    "open,remove",
-    "touch: a history row's menu leaves the detail entry out rather than disabling it",
+    actions(menus.folderMenu()),
+    "new-folder,rename,delete",
+    "a folder row's menu is make/rename/remove — no detail entry, and no divider between them",
   );
   expectEqual(
-    actions(bookmarkMenu({ folder: false }, { showDetails: false })),
-    "open,rename,delete",
-    "touch: and so does a bookmark's",
+    actions(menus.emptyTreeMenu()),
+    "new-folder",
+    "and the blank space under the tree makes a top-level folder",
   );
+  // The rows that must NOT have a menu. `Details` would come back through one of
+  // these builders, so the builders are where its absence is pinned — and the two
+  // that used to hand it out do not exist at all any more, which reading them
+  // back is the assertion. `typeof` rather than a deep equal: the module
+  // namespace answers `undefined` for a name that was never exported.
+  for (const gone of ["bookmarkMenu", "historyMenu", "emptyHistoryMenu"]) {
+    expectEqual(
+      typeof menus[gone],
+      "undefined",
+      `${gone} is gone — those rows have no menu`,
+    );
+  }
 
-  for (const file of [
+  const treeSource = await readSource(
     "src/components/bookmarks/BookmarkTree.vue",
+    "utf8",
+  );
+  expect(treeSource, "useLongPress(", "the tree reaches its menus by long press as well as by right-click");
+  expect(treeSource, "@contextmenu", "and keeps the right-click the long press stands in for");
+  expect(treeSource, "folderMenu()", "but only a folder row is offered one");
+  // The blank-space menu is the exception, and it is the one that goes through
+  // `isFolderNode` first — so the guard is what makes a right-click on a
+  // *bookmark* open nothing at all instead of falling through to "New folder".
+  expect(treeSource, "if (!isFolderNode(node)) return;", "a bookmark row's right-click opens nothing rather than the blank-space menu");
+
+  const historySource = await readSource(
+    "src/components/history/HistoryList.vue",
+    "utf8",
+  );
+  expectAbsent(historySource, "useLongPress", "the history panel has no long press — it has no menu to reach");
+  expectAbsent(historySource, "@contextmenu", "and no right-click either");
+  expectAbsent(historySource, "ContextMenu", "and reaches no menu component at all");
+  expectAbsent(historySource, "clearAll", "and no clear-all: the panel it would have lived in has no menu");
+  expect(historySource, 'class="remove"', "the row's own delete button is the one action beyond opening it");
+
+  // The delete buttons that a cursor reveals are the *only* delete a bookmark
+  // row and a history row have, and a finger has no hover — so both have to stay
+  // visible under a coarse pointer or those rows become undeletable on a
+  // touchscreen. Read from the sources because a media query is invisible to an
+  // SSR render.
+  for (const file of [
+    "src/components/bookmarks/BookmarkNode.vue",
     "src/components/history/HistoryList.vue",
   ]) {
-    const name = file.split("/").pop();
     const source = await readSource(file, "utf8");
-    expect(source, "useLongPress(", `${name} reaches its menus by long press as well as by right-click`);
-    expect(source, "@contextmenu", `${name} keeps the right-click the long press stands in for`);
+    const name = file.split("/").pop();
+    const coarse = source.slice(source.indexOf("@media (pointer: coarse)"));
+    expect(coarse, ".remove", `${name} keeps its delete button reachable without hover`);
+    expect(coarse, "display: grid", `${name} shows it outright under a coarse pointer`);
   }
 
   console.log("a write that did not land");

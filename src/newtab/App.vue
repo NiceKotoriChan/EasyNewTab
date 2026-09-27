@@ -23,26 +23,24 @@
  * search box. Esc is the way out of that state. A touch device reaches the
  * context menus by long press instead — see `useLongPress` and the two panels.
  *
- * Nothing here knows about bookmarks or history beyond picking which panel and
- * which detail view to mount. `storage.onChanged` is not wired up here either:
- * `useSettings()` consumers each react only to the fields they use, which is what
- * stops a search-engine change from rebuilding the bookmark tree.
+ * Nothing here knows about bookmarks or history beyond picking which panel to
+ * mount, and the main area is always the search card: a sidebar click opens or
+ * folds a row and never takes it away. `storage.onChanged` is not wired up here
+ * either — `useSettings()` consumers each react only to the fields they use,
+ * which is what stops a search-engine change from rebuilding the bookmark tree.
  */
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import SidePanel from "@/components/layout/SidePanel.vue";
 import Sash from "@/components/layout/Sash.vue";
 import ContextMenu from "@/components/ui/ContextMenu.vue";
 import BookmarkTree from "@/components/bookmarks/BookmarkTree.vue";
-import BookmarkDetail from "@/components/bookmarks/BookmarkDetail.vue";
 import HistoryList from "@/components/history/HistoryList.vue";
-import HistoryDetail from "@/components/history/HistoryDetail.vue";
 import WelcomePane from "@/components/welcome/WelcomePane.vue";
 import {
   loadActiveView,
   persistActiveView,
   useSidebar,
 } from "@/composables/useSidebar";
-import { useSelection } from "@/composables/useSelection";
 import { useSettings } from "@/composables/useSettings";
 import { usePlatform } from "@/composables/usePlatform";
 import { useBookmarks } from "@/composables/useBookmarks";
@@ -53,7 +51,6 @@ import type { LayoutState } from "@/core/settings";
 type View = LayoutState["activeView"];
 
 const { width, collapsed, startResize, toggle } = useSidebar();
-const { selection, clear } = useSelection();
 const { settings } = useSettings();
 const { isCompact, isTouch } = usePlatform();
 
@@ -90,8 +87,6 @@ const activeView = ref<View>("bookmarks");
 /** The hero search box, focused by `/`. */
 const welcome = ref<InstanceType<typeof WelcomePane> | null>(null);
 
-const detailView = computed(() => selection.value?.kind ?? null);
-
 function selectView(view: View): void {
   activeView.value = view;
   persistActiveView(view);
@@ -125,16 +120,11 @@ function isTypingTarget(target: EventTarget | null): boolean {
 /**
  * Put the caret in the main search box.
  *
- * The hero box only exists on the welcome pane, so a detail view has to be
- * dropped first — and it should be: `/` means "I want to type a query", and
- * with the palette gone there is nowhere else the keystroke could send you.
- * `nextTick` is what makes the focus land on the *newly mounted* box when the
- * selection was cleared; the pane's own `autofocus` would cover the common
- * case, but not the one where it was already mounted.
+ * The box is the only thing the main area ever shows, so it is already mounted
+ * by the time this runs — there is nothing to swap in first and no `nextTick` to
+ * wait for.
  */
-async function focusSearch(): Promise<void> {
-  if (selection.value) clear();
-  await nextTick();
+function focusSearch(): void {
   welcome.value?.focus();
 }
 
@@ -150,15 +140,11 @@ function openBookmarkSearch(): void {
 }
 
 /**
- * Escape unwinds one level at a time: the bookmark search box → the selection.
- * A text field with something in it clears itself first, inside `SearchField`.
+ * Escape unwinds the bookmark search box. A text field with something in it
+ * clears itself first, inside `SearchField`.
  */
 function dismiss(): void {
-  if (searchBoxOpen.value) {
-    closeSearchBox();
-    return;
-  }
-  if (selection.value) clear();
+  if (searchBoxOpen.value) closeSearchBox();
 }
 
 function onKeydown(event: KeyboardEvent): void {
@@ -239,9 +225,7 @@ onBeforeUnmount(() => {
       />
 
       <main class="main">
-        <WelcomePane v-if="!detailView" ref="welcome" />
-        <BookmarkDetail v-else-if="detailView === 'bookmark'" />
-        <HistoryDetail v-else />
+        <WelcomePane ref="welcome" />
       </main>
     </div>
 

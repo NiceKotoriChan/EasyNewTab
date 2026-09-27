@@ -76,19 +76,17 @@ function pick(action: string): void {
       :style="{ left: pos.left + 'px', top: pos.top + 'px' }"
       role="menu"
     >
-      <template v-for="(item, i) in menu.items" :key="item.action + i">
-        <div v-if="item.separatorBefore" class="ctx-sep" />
-        <button
-          type="button"
-          class="ctx-item"
-          :class="{ danger: item.danger }"
-          :disabled="item.disabled"
-          role="menuitem"
-          @click="pick(item.action)"
-        >
-          {{ item.label }}
-        </button>
-      </template>
+      <button
+        v-for="(item, i) in menu.items"
+        :key="item.action + i"
+        type="button"
+        class="ctx-item"
+        :class="{ danger: item.danger }"
+        role="menuitem"
+        @click="pick(item.action)"
+      >
+        {{ item.label }}
+      </button>
     </div>
   </Teleport>
 </template>
@@ -117,29 +115,18 @@ function pick(action: string): void {
   color: var(--text);
 }
 
-.ctx-item:hover:not(:disabled) {
+.ctx-item:hover {
   background: var(--selection-bg);
   color: var(--selection-fg);
-}
-
-.ctx-item:disabled {
-  color: var(--text-muted);
-  cursor: default;
 }
 
 .ctx-item.danger {
   color: var(--danger);
 }
 
-.ctx-item.danger:hover:not(:disabled) {
+.ctx-item.danger:hover {
   background: var(--danger-soft);
   color: var(--danger);
-}
-
-.ctx-sep {
-  height: 1px;
-  margin: 5px 6px;
-  background: var(--border);
 }
 
 /* A finger is not a cursor. A 30px row is a comfortable click and a fiddly tap,

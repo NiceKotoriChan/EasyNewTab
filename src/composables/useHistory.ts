@@ -1,5 +1,5 @@
 /**
- * History state — shared by the sidebar list and the detail pane.
+ * History state — shared by the sidebar list and the panel switch.
  */
 import { computed, ref, type ComputedRef, type Ref } from "vue";
 import { groupHistory, type HistoryGroup, type HistoryItemLike } from "@/core/history";
@@ -69,26 +69,15 @@ export function useHistory(): {
   groups: ComputedRef<HistoryGroup[]>;
   loading: Ref<boolean>;
   failed: Ref<boolean>;
-  findByUrl: (url: string) => HistoryItemLike | undefined;
   reload: () => Promise<void>;
   remove: (url: string) => Promise<void>;
-  clearAll: () => Promise<void>;
 } {
   bootstrap();
 
   const groups = computed(() => groupHistory(items.value));
 
-  function findByUrl(url: string): HistoryItemLike | undefined {
-    return items.value.find((item) => item.url === url);
-  }
-
   async function remove(url: string): Promise<void> {
     await chrome.history.deleteUrl({ url });
-    await reload();
-  }
-
-  async function clearAll(): Promise<void> {
-    await chrome.history.deleteAll();
     await reload();
   }
 
@@ -97,9 +86,7 @@ export function useHistory(): {
     groups,
     loading,
     failed,
-    findByUrl,
     reload,
     remove,
-    clearAll,
   };
 }
