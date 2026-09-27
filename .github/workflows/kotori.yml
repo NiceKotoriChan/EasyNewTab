@@ -16,26 +16,6 @@ permissions:
   contents: read # 最小权限；需要写权限的只有下面 release 这一个 job
 
 jobs:
-  dir:
-    runs-on: ubuntu-latest
-    steps:
-      - run: pwd
-      - run: ls -al
-
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with: { node-version: 24, cache: npm }
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build
-      - run: npm run view
-      - run: npm run view:mobile
-
   release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: build
@@ -46,8 +26,9 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with: { node-version: 24, cache: npm }
+      - run: pwd
+      - run: ls -al
       - run: npm ci
-      # 干净构建：vite 会先清空 dist/，所以不会带上 view:mobile 的预览页
       - run: npm run build
 
       - name: 确认 dist/ 里没有开发用的预览页
