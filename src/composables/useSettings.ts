@@ -1,20 +1,16 @@
 /**
- * The single source of truth for settings inside a page.
+ * The single source of truth for settings inside a page. Every read and write of
+ * `storage.sync.settings` goes through here, so a settings change can only
+ * invalidate what actually depends on it.
  *
- * Every read and every write of `storage.sync.settings` goes through here, so a
- * settings change can only invalidate what actually depends on it.
- *
- * Two guards here exist so that "I changed a setting and nothing happened" can
- * never be a silent failure:
- *
- * 1. `epoch` guards the first read. `loadSettings()` is in flight for a few
- *    milliseconds on every page load, and a click or another tab's change that
- *    lands inside that window is *newer* than the value being read. Without the
- *    guard the read resolves last and puts the old value back.
- * 2. A failed write rolls the optimistic value back and records why. Keeping the
- *    new value while storage still holds the old one makes the UI lie, and the
- *    lie is invisible — `sync` has write quotas, and a write from an orphaned
- *    page throws, so this path has to be loud.
+ * Two guards keep "I changed a setting and nothing happened" from being a silent
+ * failure. `epoch` protects the first read: `loadSettings()` is in flight for a
+ * few milliseconds on page load, and a click or another tab's change landing
+ * inside that window is newer than the value being read — without the guard, the
+ * read resolves last and puts the old value back. And a failed write rolls the
+ * optimistic value back and records why, because keeping the new value while
+ * storage holds the old one makes the UI lie invisibly: `sync` has write quotas,
+ * and a write from an orphaned page throws.
  */
 import { ref, type Ref } from "vue";
 import { DEFAULT_SETTINGS, normalizeSettings, type Settings } from "@/core/settings";

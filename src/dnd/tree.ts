@@ -1,38 +1,21 @@
 /**
- * Drag & drop for the bookmark tree.
+ * Drag & drop for the bookmark tree — the only module that speaks
+ * `@atlaskit/pragmatic-drag-and-drop`. Everything around it keeps calling
+ * `computeDropPosition` / `computeMoveTarget` from `core/`, so the zone model
+ * stays a tested pure function and the library stays replaceable.
  *
- * The only module that speaks `@atlaskit/pragmatic-drag-and-drop`. Everything
- * around it keeps calling `computeDropPosition` / `computeMoveTarget` from
- * `core/`, so the zone model stays a tested pure function and the library stays
- * replaceable — swapping it out again would touch this file and nothing else.
+ * The library earns its place on three things HTML5 drag & drop cannot do: a
+ * drag image you can offset (`setCustomNativeDragPreview`), autoscrolling an
+ * inner `overflow: auto` list, and knowing which row the pointer is actually on
+ * when rows are nested (`dropTargetForElements` maintains that stack; the
+ * hand-rolled version re-derived it from `event.target.closest(".row")`).
+ * `canDrop()` also gives a row a supported way to refuse a drop, and
+ * `dropEffect: none` keeps the cursor agreeing with the highlight.
  *
- * Why a library at all. The previous implementation was hand-rolled HTML5 drag
- * & drop (`draggable="true"` plus dragstart/dragover/drop) and it could not do
- * three things a tree needs to feel right:
- *
- *   - a drag image you control. The browser's default is a bitmap of the row
- *     taken at `dragstart`, anchored to wherever inside the row you grabbed,
- *     and there is no way to nudge it. `setCustomNativeDragPreview` hands you a
- *     container and a `getOffset`, so the row can be picked up at a fixed point.
- *   - scrolling the list when the pointer reaches an edge. Chrome does not
- *     autoscroll an inner `overflow: auto` element, which makes any position
- *     that is currently off-screen unreachable in one gesture.
- *   - knowing which row the pointer is actually on when rows are nested. The
- *     old code pattern-matched `event.target.closest(".row")` and re-derived
- *     the hierarchy by hand; `dropTargetForElements` maintains that stack and
- *     only needs the top of it to be read.
- *
- * Two other things fall out of the library's model for free: `canDrop()` gives
- * a row a supported way to refuse a drop (an illegal target now says no instead
- * of silently doing nothing), and `dropEffect: none` is applied for us, so the
- * cursor agrees with the highlight.
- *
- * Still browser-controlled, and knowingly left alone: how far the pointer must
- * move before a drag starts. `canDrag()` would let us impose our own threshold —
- * and that was the first thing tried — but a threshold above the browser's own
- * does not fix a twitchy click, it converts it into "the drag was cancelled and
- * the click did not fire either". Without a real mouse to calibrate against,
- * guessing that number is a strictly worse bet than leaving it to Chrome.
+ * Left to the browser on purpose: how far the pointer must move before a drag
+ * starts. Imposing our own threshold on top of the browser's does not fix a
+ * twitchy click — it turns it into "the drag was cancelled and the click did not
+ * fire either", which is strictly worse.
  */
 import {
   draggable,
@@ -48,7 +31,7 @@ export type Cleanup = () => void;
 
 /** Rest this long on a collapsed folder row and it opens, so a drop into a
  *  nested folder is one gesture instead of three. */
-export const DWELL_MS = 600;
+const DWELL_MS = 600;
 
 /**
  * What every row carries, both as a drag source and as a drop target.
@@ -58,7 +41,7 @@ export const DWELL_MS = 600;
  * costs nothing — `id` and `kind` keep their own types — and it keeps the two
  * keys this app relies on named in one place.
  */
-export interface RowDragData {
+interface RowDragData {
   id: string;
   kind: NodeKind;
   [key: string]: unknown;
@@ -232,7 +215,7 @@ export function wireRow(el: HTMLElement, reg: RowRegistration): Cleanup {
   );
 }
 
-export interface DragWatchOptions {
+interface DragWatchOptions {
   /** The scrollable list, used to tell "the empty area" from "outside the panel". */
   container: () => HTMLElement | null;
   /** Commit a drop that landed on a row. */
@@ -268,7 +251,7 @@ function isBelowLastRow(container: HTMLElement | null, clientY: number): boolean
  * recomputed rather than reused: `onDrag` is throttled, so the last hover
  * update can be a frame or two stale — enough to pick the wrong third of a row.
  */
-export function watchDrag(opts: DragWatchOptions): Cleanup {
+function watchDrag(opts: DragWatchOptions): Cleanup {
   return monitorForElements({
     onDrop({ source, location }) {
       const { clientY } = location.current.input;

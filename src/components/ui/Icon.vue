@@ -1,22 +1,16 @@
 <script setup lang="ts">
 /**
- * One icon, by semantic name. Wraps whatever `mdi-icons.ts` maps that name to.
+ * One icon, by semantic name. See `mdi-icons.ts` for the set and why it is
+ * resolved at build time.
  *
- * The set is Iconify's Material Design Icons, resolved at build time from the
- * offline `@iconify-json/mdi` package — see `mdi-icons.ts` for why, and for the
- * outline-vs-solid choice. What matters here is that the output is still a
- * single `<svg>` carrying the classes the call site passes, so every rule that
- * was written against `.lead`, `.prefix`, `.s-icon`, `.folder-icon` keeps
- * applying unchanged.
+ * The output is a single `<svg>` carrying the classes the call site passes, so
+ * rules written against `.lead`, `.prefix` and friends keep applying unchanged.
+ * Size comes from width and height, never from `stroke-width`: these are filled
+ * glyphs, not strokes.
  *
- * `icon` is a *filled* glyph, not a stroke drawing: size comes from width and
- * height, never from `stroke-width` (the icons this replaced were 1.6px
- * strokes, so any leftover stroke styling would now be dead weight).
- *
- * `aria-hidden` is set here rather than left to each call site: these icons
- * always sit inside something that already carries the accessible name (a
- * button with `aria-label`, a row with the title as text), and an unlabelled
- * `<svg>` in the tree would make screen readers announce the button twice.
+ * `aria-hidden` is set here rather than at each call site — these icons always
+ * sit inside something that already carries the accessible name, and an
+ * unlabelled `<svg>` would make a screen reader announce the control twice.
  */
 import { computed } from "vue";
 import { resolveIcon, type IconName } from "./mdi-icons";

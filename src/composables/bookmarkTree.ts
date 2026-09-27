@@ -1,13 +1,11 @@
 /**
  * Context shared between BookmarkTree and the (recursive) BookmarkNode rows.
- *
- * Passing this through `provide`/`inject` keeps the recursive component
- * signature down to `node` + `depth`, so rows stay cheap to render.
+ * `provide`/`inject` keeps the recursive component signature down to `node` +
+ * `depth`.
  *
  * Drag state lives here rather than in each row because a drag is a property of
- * the tree as a whole: which node is being carried, which row the pointer is on,
- * and which rows currently have to refuse a drop. Rows only report what happens
- * to them (`registerRow`) and read back what to draw.
+ * the tree as a whole — which node is carried, which row the pointer is on, which
+ * rows must refuse a drop. Rows only report what happens to them.
  */
 
 import type { ComputedRef, InjectionKey, Ref } from "vue";

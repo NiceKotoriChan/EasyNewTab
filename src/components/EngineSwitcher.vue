@@ -1,29 +1,17 @@
 <script setup lang="ts">
 /**
- * Search engine switcher — the row of engine chips that sits under the
- * search box (same six engines as the original build; GitHub has no suggestion
- * endpoint).
+ * Search engine switcher — the row of engine chips under the search box.
  *
- * Six separate outlined pills. That is what this row looked like before the
- * round-five restyle folded it into a segmented track, and what it looked like
- * in the vanilla build the app was rewritten from (`src/card/search.css`,
- * `.engine-btn` — the values below are that rule's, mapped onto the current
- * token names). Restored at the user's request, so the shape is a *revert*
- * rather than a new idea; the two differ in one thing, where the border lives:
+ * Six separate outlined pills rather than one segmented track, because six
+ * independent choices is what this row actually is: a track draws a single border
+ * around the whole row and raises the current option, which reads as one control
+ * with a value. Here each engine gets its own border and the current one is
+ * marked by colour instead — accent border and text on the neutral `--inset`
+ * wash.
  *
- * - a **track** draws one border around the whole row and raises the current
- *   option on a surface-coloured pill, so the row reads as one control with a
- *   current value;
- * - **pills** give every engine its own border, and the current one is marked
- *   by colour instead (accent border and text, on the neutral `--inset` wash
- *   the original's `--bg-active` was).
- *
- * Six independent choices is what this row actually is, which is the argument
- * for the second shape.
- *
- * It writes through `useSettings()` like every other control, so the choice is
- * persisted and immediately visible to whichever search field is on screen.
- * No search state lives here: `useSearch()` watches the engine and re-runs the
+ * It writes through `useSettings()` like every other control, so the choice
+ * persists and is immediately visible to whichever search field is on screen. No
+ * search state lives here: `useSearch()` watches the engine and re-runs the
  * pending query, so the two never need to know about each other.
  */
 import EngineIcon from "./ui/EngineIcon.vue";

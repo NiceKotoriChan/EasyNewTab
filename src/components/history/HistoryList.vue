@@ -2,16 +2,14 @@
 /**
  * History sidebar panel — grouped by day, newest first.
  *
- * One click opens an entry in a new tab: no double click, and nothing is
- * selected, so the search box in the main area is never replaced by a click.
- * The read-only detail view is behind the row's context menu.
+ * One click opens an entry in a new tab; nothing is selected, so the search box
+ * in the main area is never replaced by a click. The read-only detail view is
+ * behind the row's context menu.
  *
- * The list is unbounded: everything in the profile is requested and every row
- * is rendered, which stays cheap because off-screen rows opt out of layout and
- * paint (see `.row` below). No pagination, no "load more".
- *
- * Clearing everything is behind both a context menu and a confirmation
- * dialog. Previously it was a bare `d` key with no prompt.
+ * The list is unbounded — everything in the profile is requested and every row
+ * rendered, which stays cheap because off-screen rows opt out of layout and paint
+ * (see `.row` below). Clearing it all goes through a context menu and a
+ * confirmation dialog.
  */
 import { computed, ref } from "vue";
 import Favicon from "../ui/Favicon.vue";

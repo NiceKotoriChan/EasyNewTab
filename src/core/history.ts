@@ -20,7 +20,7 @@ export interface HistoryGroup<T extends HistoryItemLike = HistoryItemLike> {
   items: T[];
 }
 
-export function startOfDay(timestamp: number): number {
+function startOfDay(timestamp: number): number {
   const d = new Date(timestamp);
   d.setHours(0, 0, 0, 0);
   return d.getTime();

@@ -1,21 +1,15 @@
 /**
- * Chrome's "most visited" list, reduced to what a shortcut row can show.
+ * Chrome's "most visited" list, reduced to what a shortcut row can show — a list
+ * of *pages*, and a page is not a site. Pure, so the rules below are pinned by
+ * `tests/topSites.test.ts` rather than by looking at what got rendered.
  *
- * The API hands back *pages*, and a page is not a site: one host can appear
- * twice (a landing page and a deep link into it), a title can be blank because
- * the page never declared one, and not everything Chrome scores is navigable
- * from a new tab. This module is the filter between that list and the row. It
- * is pure, so the rules below are pinned by `tests/topSites.test.ts` rather
- * than by looking at what got rendered.
- *
- * Ranking is deliberately left alone. Chrome's order is the entire reason to
- * use this API instead of counting visits ourselves, so nothing here sorts: it
- * takes the first `limit` *distinct sites in the order they arrived*, which is
- * what keeps "the order means something" true.
+ * Ranking is deliberately left alone: Chrome's order is the entire reason to use
+ * this API instead of counting visits ourselves, so nothing here sorts. It takes
+ * the first `limit` distinct sites *in the order they arrived*.
  */
 
 /** A page Chrome considers one of the most visited. */
-export interface TopSiteLike {
+interface TopSiteLike {
   url: string;
   title?: string;
 }

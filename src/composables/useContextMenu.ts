@@ -19,7 +19,7 @@ export interface MenuItem {
   separatorBefore?: boolean;
 }
 
-export interface MenuState {
+interface MenuState {
   x: number;
   y: number;
   items: MenuItem[];
@@ -28,7 +28,7 @@ export interface MenuState {
 
 const menu = ref<MenuState | null>(null);
 
-export interface UseContextMenu {
+interface UseContextMenu {
   menu: Ref<MenuState | null>;
   open: (
     event: MouseEvent,

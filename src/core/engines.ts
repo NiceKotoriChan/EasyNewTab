@@ -5,7 +5,7 @@
  * endpoint, so its `suggestUrl` is omitted and the dropdown stays closed.
  */
 
-export interface SearchEngine {
+interface SearchEngine {
   readonly id: string;
   readonly name: string;
   readonly searchUrl: string;
@@ -14,7 +14,7 @@ export interface SearchEngine {
   readonly parseResponse?: (data: unknown) => string[];
 }
 
-export const SUGGESTION_LIMIT = 8;
+const SUGGESTION_LIMIT = 8;
 
 export const ENGINES = {
   google: {
@@ -111,7 +111,7 @@ export function isEngineId(value: unknown): value is EngineId {
   return typeof value === "string" && value in ENGINES;
 }
 
-export function getEngine(id: EngineId): SearchEngine {
+function getEngine(id: EngineId): SearchEngine {
   return ENGINES[id];
 }
 

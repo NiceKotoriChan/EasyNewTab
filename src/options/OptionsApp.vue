@@ -1,51 +1,20 @@
 <script setup lang="ts">
 /**
  * Settings page — the extension's own options page, and since the new tab page
- * lost its gear button, the *only* place preferences can be changed. That is
- * where it belongs: a new tab page is a page you open a hundred times a day and
- * settings you touch twice a year should not be part of its chrome.
+ * has no gear button, the only place preferences can be changed.
  *
- * No Save button: every control writes to `storage.sync` on change, matching
- * the previous behaviour. Three things the old build had are gone — shortcut
- * rebinding (the shell's shortcuts are fixed), the "history items" slider (the
- * history panel now loads everything, so there is nothing to cap) and the
- * default-engine picker.
+ * No Save button: every control writes to `storage.sync` on change. The page
+ * carries no prose either — a row is a name and a control, a section is a title
+ * and its rows — so "which way counts as shut" is documented nowhere in the UI
+ * except the divider's own hover text (`Sash.vue`).
  *
- * The page carries **no prose**: a row is a name and a control, a section is a
- * title and its rows. That rule was arrived at in two steps. First the rows with
- * nothing to operate went — one said history has no item cap (restating the
- * absence of the slider above it), the other explained how to reach this page (a
- * fact the page cannot act on: the manifest declares `options_ui`, so
- * `chrome://extensions` → Details already links here). A row that looks like a
- * setting but has no switch reads as a broken one. Then the explanatory
- * paragraph under each surviving row went too, along with the Shortcuts
- * section's intro: a sentence describing a setting to someone who is looking
- * straight at its control is read once and skipped every time after, on a page
- * opened twice a year.
+ * The engine picker is deliberately absent: the row of engines under the new tab
+ * page's search box is authoritative, and a second copy here would only raise
+ * the question of which of the two wins.
  *
- * What that costs is real, so it is written down here rather than glossed over:
- * the sidebar row used to spell out that everything directional follows the
- * docked edge, so "which way counts as shut" is no longer stated anywhere in the
- * interface. It is discovered by dragging the divider, whose hover text names
- * the direction that hides it (see `Sash.vue`). The render check asserts both
- * hint classes away, so a paragraph cannot quietly come back.
- *
- * The engine picker is the interesting removal: choosing an engine *is* the row
- * of engines under the new tab page's search box, and the active one there is
- * the default. A second copy in here only raised the question of which of the
- * two was authoritative, so this page no longer has a Search section at all.
- *
- * Since this page is the only writer of settings, it is also the only place a
- * failed write can be reported. `lastError` drives the alert strip at the top:
+ * Because this page is the only writer of settings, it is also the only place a
+ * failed write can be reported. `lastError` drives the alert strip at the top;
  * without it, a save that did not land looks exactly like one that did.
- *
- * There is no longer a nav column. There are two sections and they fit on one
- * screen, so paging between them cost a click each way and bought nothing —
- * "General" was never a place you went, it was just the half of the page that was
- * not showing. Both now stack in one scrollable column, which is also the reason
- * `shortcuts.ts` no longer has to justify itself as "the panel is behind a nav
- * click and nothing headless can click it": the rows are on the page, so the
- * render check asserts on them the way it asserts on any other markup.
  */
 import Icon from "../components/ui/Icon.vue";
 import type { IconName } from "../components/ui/mdi-icons";

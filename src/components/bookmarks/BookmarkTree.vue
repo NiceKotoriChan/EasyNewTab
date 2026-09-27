@@ -2,28 +2,19 @@
 /**
  * Bookmark sidebar panel: tree, drag & drop.
  *
- * The expand-all / collapse-all pair that used to sit in a corner bar above the
- * tree is gone. With the filter box already removed it was the last thing in
- * that bar, so the bar went with it and the rows start at the top of the panel.
- * Folding by hand is the only way in and out of a folder now.
- *
  * A left click is the whole gesture — `resolveRowActivation` decides whether it
- * opens a bookmark or folds a folder, and `tests/bookmarks.test.ts` pins it. It
- * never selects, so the search box in the main area is never swapped out from
- * under a click; the detail editor lives behind the row's context menu.
+ * opens a bookmark or folds a folder. It never selects, so the search box in the
+ * main area is never swapped out from under a click; the detail editor lives
+ * behind the row's context menu.
  *
- * The search box is the one thing that appears above the tree, and only when it
- * is asked for: `p` in the shell reveals it, Esc or its × puts it away and
- * drops the query. A filter bar that is always there costs a row of the panel
- * forever, and this tree is browsed by expanding folders. What it filters with
- * is `searchBookmarks`, which prunes the tree rather than hiding rows — see the
- * note there for why that is the same decision as "no flag on the row".
+ * The search box appears above the tree only when asked for (`p`, then Esc or
+ * its ×), because a filter bar that is always there costs a row of the panel
+ * forever. It filters with `searchBookmarks`, which prunes the tree rather than
+ * hiding rows.
  *
- * This component owns drag *state*; the gestures live in `src/dnd/tree.ts`.
- * Splitting it that way is what makes the state readable: what the panel keeps
- * is which node is in the air and which row the pointer is on, and everything
- * else — hit testing, the drag image, autoscroll, the commit — is the library's
- * or the adapter's problem. The zone maths stays in `core/` as a pure function.
+ * This component owns drag *state* — which node is in the air, which row the
+ * pointer is on. The gestures live in `src/dnd/tree.ts`; the zone maths stays in
+ * `core/` as a pure function.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from "vue";
 import BookmarkRow from "./BookmarkNode.vue";
@@ -101,16 +92,14 @@ const blockedIds = computed(() => {
 });
 
 /**
- * The line between rows. Only meaningful for `before` / `after` — "inside" is
- * shown by filling the target row itself, which is a different outcome and so a
- * different signal.
+ * The line between rows. Only meaningful for `before` / `after` — "inside" fills
+ * the target row itself, which is a different outcome and so a different signal.
  *
- * Coordinates are converted into the scroller's *content* space and the line is
- * absolutely positioned inside it, rather than being fixed to the viewport.
- * That matters now that the list autoscrolls: the row rects are captured while
- * hovering, so a viewport-fixed line would sit still while the list scrolled
- * underneath it. In content space the line travels with the row for free, and
- * this computed does not need to re-run on scroll to stay correct.
+ * Coordinates are converted into the scroller's *content* space rather than
+ * pinned to the viewport: the row rects are captured while hovering, so a
+ * viewport-fixed line would sit still while the list autoscrolled underneath it.
+ * In content space it travels with the row for free, and this computed does not
+ * re-run on scroll.
  */
 const indicator = computed(() => {
   const target = dropTarget.value;

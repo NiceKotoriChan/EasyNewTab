@@ -2,39 +2,21 @@
 /**
  * The most-visited row: up to eight sites, under the search box.
  *
- * The tiles are Chromium's, not invented here. The built-in new tab page mounts
- * `cr-most-visited` (`ui/webui/resources/cr_components/most_visited`, with
- * `single-row reflow-on-overflow`), and everyone has already seen what that
- * looks like: a 112px tile holding a 48px filled circle with a 24px favicon
- * centred in it, a 12px label under the circle, the whole tile washing to a
- * translucent grey on hover. Every number below is that component's own default
- * — `--tile-size` 112px, `--icon-size` 48px, 16px above the icon, 6px above the
- * label, a 32px title box, a 4px tile radius — so "the same as Chrome" stays
- * checkable against its source instead of against memory.
+ * The tile is Chromium's own (`cr-most-visited`) — 112px tile, 48px circle, 24px
+ * favicon, 12px label — so "the same as Chrome" stays checkable against its
+ * source instead of against memory. Two deliberate differences: the grid is two
+ * rows of four rather than one reflowing line (this pane is 620px, where a fifth
+ * column would fold eight sites into an uneven 5+3), and none of the add/edit
+ * affordances are copied. Shortcuts are Chrome's list, the sidebar is where a new
+ * tab gets edited, and nothing is drawn when there is nothing to show.
  *
- * Two things are deliberately not copied:
+ * Clicking obeys `openInNewTab` like the sidebar does: the element is a real
+ * `<a>` so the URL preview and modifier-clicks keep working, and the handler only
+ * takes over the plain left click, whose default would navigate *this* tab away.
  *
- * - **The single reflowing row.** Chromium lays the shortcuts out in one line
- *   and lets that line run wider than the search box. This pane is 620px, where
- *   a fifth column would fold eight sites into an uneven 5+3, so the grid stays
- *   two rows of four — the balanced form of the same grid.
- * - **The add/edit affordances.** No `+` tile, no per-tile `⋮` menu, no
- *   drag-to-reorder. Shortcuts are Chrome's list; the sidebar is where a new
- *   tab gets edited. Nothing is drawn when there is nothing to show, either:
- *   no placeholder, no explanation. An empty row is not a feature.
- *
- * Clicking obeys the same setting the sidebar does (`openInNewTab`), because a
- * shortcut that opened differently from a bookmark would be a trap. The element
- * is a real `<a>` so the URL preview and modifier-clicks keep working; the
- * handler only takes over the plain left click, whose default would navigate
- * *this* tab off the new tab page.
- *
- * `data-site-url` is the render check's handle on one entry. It needs one: the
- * URL also appears percent-encoded inside the favicon's query string, so a
- * document-wide search for the host would be answered by the icon even if the
- * label were blank — which is the exact mistake the label fallback exists to
- * prevent. (`label` in the check has to tolerate `data-v-…` between the class
- * and the `>`, because scoped CSS puts one on every element.)
+ * `data-site-url` is the render check's handle on one entry — without it, a
+ * search for the host would be answered by the percent-encoded copy inside the
+ * favicon's query string even if the label were blank.
  */
 import { useSettings } from "@/composables/useSettings";
 import { useTopSites } from "@/composables/useTopSites";

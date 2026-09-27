@@ -1,11 +1,8 @@
 /**
- * Search state machine for the main search box.
- *
- * It used to be shared with the Ctrl+P quick-open palette; that palette is
- * gone, so the hero box on the welcome pane is the only thing driving it — and
- * `/` is the only way to reach that box when it is not already in front. The
- * state stays per-instance anyway: the pane unmounts whenever a detail view
- * takes over the main area.
+ * Search state machine for the main search box, driven by the welcome pane's hero
+ * box — `/` is the only way to reach that box when it is not already in front.
+ * State is per-instance: the pane unmounts whenever a detail view takes over the
+ * main area.
  */
 
 import { computed, onScopeDispose, ref, watch, type ComputedRef, type Ref } from "vue";
@@ -21,7 +18,7 @@ import { useSettings } from "./useSettings";
 
 const SUGGEST_DEBOUNCE_MS = 200;
 
-export interface UseSearch {
+interface UseSearch {
   query: Ref<string>;
   suggestions: Ref<string[]>;
   activeIndex: Ref<number>;

@@ -1,29 +1,20 @@
 /**
  * The icon set: app-level names → Material Design Icons, resolved at build time.
  *
- * Source is Iconify's offline MDI package (`@iconify-json/mdi`, 7638 icons,
- * 24x24). `unplugin-icons` turns each import below into an inline SVG
- * component, so only the icons listed here reach the bundle — no runtime icon
- * library, no data for the other 7622, and nothing fetched over the network
- * (`script-src 'self'` would block a remote icon API anyway).
+ * Source is Iconify's offline MDI package, and `unplugin-icons` turns each import
+ * below into an inline SVG component — so only the icons listed here reach the
+ * bundle, and nothing is fetched over the network (`script-src 'self'` would
+ * block a remote icon API anyway).
  *
- * Three deliberate choices:
- *
- * - **Outline variants for the utility glyphs** (`bookmark-outline`,
- *   `trash-can-outline`, `cog-outline`, `keyboard-outline`, `alert-outline`).
- *   The set this replaced was drawn as 1.6px strokes, and MDI's solid glyph at
- *   13–15px reads a full weight heavier. The outline variants keep the same
- *   visual weight while still being MDI.
- * - **`folder` is the exception, and it is a pair.** `folder` (solid) is the
- *   closed state, `folder-open` (MDI's `folder-outline`) is the expanded state —
- *   the same two glyphs the pre-rewrite build drew. A folder row is the only row
- *   whose icon says something about the row's own state, so it is the only icon
- *   that needs two of them. The outline half of the pair is what makes the swap
- *   legible: solid → hollow, rather than one solid glyph changing into another.
- * - **The keys are ours, not MDI's.** Call sites say `name="folder"` or
- *   `name="folder-open"`, never `folder-outline`, so nobody has to know or care
- *   which set is behind it. It also means a typo like `name="foldr"` is a *type
- *   error* at the call site rather than an invisible empty box — see `IconName`.
+ * - **Outline variants for the utility glyphs**, because MDI's solid glyph at
+ *   13–15px reads a full weight heavier than the 1.6px strokes it replaced.
+ * - **`folder` is a pair:** `folder` (solid) is the closed state, `folder-open`
+ *   (MDI's `folder-outline`) the expanded one. A folder row is the only row whose
+ *   icon says something about its own state, and the solid → hollow swap is what
+ *   makes it legible.
+ * - **The keys are ours, not MDI's.** Call sites say `name="folder"`, never
+ *   `folder-outline`, so a typo like `name="foldr"` is a *type error* at the call
+ *   site rather than an invisible empty box — see `IconName`.
  */
 import type { Component } from "vue";
 import MdiAlertOutline from "~icons/mdi/alert-outline";

@@ -14,7 +14,7 @@ import { DEFAULT_ENGINE_ID, isEngineId, type EngineId } from "./engines.ts";
 /** Which window edge the sidebar docks to. */
 export type SidebarPosition = "left" | "right";
 
-export function isSidebarPosition(value: unknown): value is SidebarPosition {
+function isSidebarPosition(value: unknown): value is SidebarPosition {
   return value === "left" || value === "right";
 }
 
@@ -55,7 +55,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sidebarPosition: "left",
 };
 
-export const DEFAULT_LAYOUT: LayoutState = {
+const DEFAULT_LAYOUT: LayoutState = {
   sidebarWidth: SIDEBAR_DEFAULT,
   sidebarCollapsed: false,
   activeView: "bookmarks",
@@ -112,7 +112,7 @@ export function normalizeLayout(raw: unknown): LayoutState {
 
 // ---------------------------------------------------------------- drag geometry
 
-export type SidebarDrag =
+type SidebarDrag =
   | { kind: "resize"; width: number }
   | { kind: "collapse" }
   | { kind: "expand"; width: number }

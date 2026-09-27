@@ -1,19 +1,12 @@
 /**
- * Unit tests for the extension-context watchdog.
+ * The extension-context watchdog's decision function.
  *
- * The watchdog exists because an extension page cannot be *told* that its
- * extension went away: every channel out of the page runs through the same
- * dead `chrome` object, so the page has to poll for its own death and reload.
- * Two failure modes of that recovery are worse than the disease, and neither
- * can be caught by a render check:
+ * Two failure modes of the recovery are worse than the disease, and neither can
+ * be caught by a render check: reloading a page whose context was never alive
+ * (a reload loop), and reloading forever on a context that keeps dying.
  *
- *   - reloading a page whose context was never alive, which is a reload loop,
- *     and
- *   - reloading forever on a context that keeps dying.
- *
- * These tests pin both. The probes themselves live in `chrome/lifecycle.ts`
- * and are not covered here — they are two lines of try/catch around the real
- * APIs.
+ * The probes themselves live in `bootstrap.ts` and are not covered here — they
+ * are two lines of try/catch around the real APIs.
  */
 
 import assert from "node:assert/strict";

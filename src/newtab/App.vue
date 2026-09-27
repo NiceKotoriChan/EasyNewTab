@@ -1,43 +1,21 @@
 <script setup lang="ts">
 /**
- * New tab page shell.
+ * New tab page shell: two floating sheets, sidebar and main, on a tinted
+ * background, and no chrome of its own.
  *
- * Two floating sheets — sidebar and main — on a tinted background, and nothing
- * else. The title bar, the activity bar and the status bar are all gone, and so
- * is the collapsed-sidebar rail that briefly replaced them: the page has no
- * chrome of its own left, which is the point of a new tab.
+ * The sidebar has no buttons — hiding it is a drag past the collapse threshold
+ * (`core/settings.ts`), or `s`. Which edge it docks to is a setting, and the
+ * whole row mirrors with `flex-direction: row-reverse`, so nothing else in this
+ * file has to know the difference.
  *
- * That leaves the sidebar with no buttons at all, and no icon-only strip either.
- * Hiding it is a drag — take the divider past the collapse threshold and it
- * shuts; drag it back out and it returns (`core/sidebar.ts`). `s` does the same
- * thing from the keyboard. The handle is rendered in both states, so the gesture
- * that closes the sidebar can also reopen it.
- *
- * Which window edge the sidebar docks to is a setting (default left). The whole
- * row mirrors with it — `flex-direction: row-reverse` swaps the sidebar to the
- * right edge and the divider's gutter to its other side — so nothing else in
- * this file has to know the difference.
- *
- * Settings are not reachable from here: they belong to the extension, not to
- * the new tab page, and live in `options.html` (chrome://extensions → Details →
- * Extension options).
- *
- * The keyboard is the whole command surface. There is no palette and no toolbar
- * left to put one in: `/` puts the caret in the main search box, `p` opens the
- * sidebar's bookmark search, `s` hides the sidebar and `b` / `h` pick a panel —
- * then Esc unwinds one level at a time (bookmark search → selection → the input
- * clears itself). **Not one of them uses a modifier**, which is why the pane's
- * own Escape handling matters: every binding here is a character first, so none
- * of them fire while the caret is in a text field, and a new tab starts with the
- * caret in the search box. Esc is the way out of that state.
+ * The keyboard is the whole command surface. No binding uses a modifier, so none
+ * of them fire while the caret is in a text field — and a new tab starts with
+ * the caret in the search box. Esc is the way out of that state.
  *
  * Nothing here knows about bookmarks or history beyond picking which panel and
- * which detail view to mount, so the card-specific code never has to reason
- * about the frame.
- *
- * `storage.onChanged` is NOT wired up here. Settings are consumed through
- * `useSettings()` and each consumer reacts only to the fields it uses — that
- * decoupling is what stops a search-engine change from rebuilding the tree.
+ * which detail view to mount. `storage.onChanged` is not wired up here either:
+ * `useSettings()` consumers each react only to the fields they use, which is what
+ * stops a search-engine change from rebuilding the bookmark tree.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import SidePanel from "@/components/layout/SidePanel.vue";

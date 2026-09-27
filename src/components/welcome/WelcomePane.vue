@@ -1,21 +1,12 @@
 <script setup lang="ts">
 /**
- * The main-area view when nothing is selected: a quiet clock and the hero
- * search box, so opening a new tab and typing still just works.
+ * The main-area view when nothing is selected: a quiet clock and the hero search
+ * box, so opening a new tab and typing still just works. The search box is the
+ * only thing here that takes input.
  *
- * The most-visited tiles hang under the search block (`TopSites.vue`), drawn
- * the way Chromium's own new tab page draws them. A "frequently visited" grid
- * used to sit in that spot and was deleted in an earlier round for competing
- * with the search box; it came back at the user's request, and is now modelled
- * on the built-in page rather than kept deliberately quiet. The rule that
- * survived that round trip is unchanged, though: the search box is the only
- * thing here that takes input.
- *
- * The box is autofocused on mount, which covers a plain new tab. It is also
- * exposed for the case that mount does not: `/` pressed while a detail view was
- * open, where the pane is created *by* the keystroke. Escape is the way back out
- * of it, and that is not cosmetic — the shell's shortcuts all switch off while
- * the caret is in a text field (see `leaveField`).
+ * The box is autofocused on mount, which covers a plain new tab; it is also
+ * exposed for the case mount does not cover — `/` pressed while a detail view was
+ * open, where this pane is created *by* the keystroke.
  */
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import SearchField from "../SearchField.vue";
@@ -42,13 +33,12 @@ const field = ref<InstanceType<typeof SearchField> | null>(null);
 
 /**
  * Escape pressed inside an empty search box — the field has already cleared
- * itself, or had nothing to clear. The last thing left to unwind is the field's
- * own focus.
+ * itself, or had nothing to clear, so the last thing left to unwind is focus.
  *
- * This is load-bearing rather than a nicety: every bare-key binding is gated
- * behind "the caret is not in a text field", and this box autofocuses on mount,
- * so without an Escape that actually leaves it there is no keyboard route to any
- * shortcut at all. `/` is the way back in.
+ * Load-bearing rather than cosmetic: every bare-key binding is gated behind "the
+ * caret is not in a text field", and this box autofocuses on mount, so without
+ * an Escape that actually leaves it there is no keyboard route to any shortcut at
+ * all. `/` is the way back in.
  */
 function leaveField(): void {
   field.value?.blur();

@@ -1,14 +1,10 @@
 /**
- * Bookmark tree logic — pure functions only.
+ * Bookmark tree logic — pure functions only, so every rule here is pinned by
+ * `tests/bookmarks.test.ts` rather than by looking at what got rendered.
  *
- * Imported by components for rendering, but every decision that can be made
- * without a DOM lives here so it can be unit-tested (see tests/bookmarks.test.ts).
- *
- * Nothing here second-guesses the platform. `computeMoveTarget` in particular
- * hands `chrome.bookmarks.move` an index in the coordinate space that method
- * documents, and leaves the index adjustment Chromium does internally to
- * Chromium — see the note on that function for what happens when both sides do
- * it.
+ * Nothing here second-guesses the platform: `computeMoveTarget` hands
+ * `chrome.bookmarks.move` an index in the coordinate space that method
+ * documents, and leaves Chromium's own index adjustment to Chromium.
  */
 
 /** Minimal shape of `chrome.bookmarks.BookmarkTreeNode` used by this module. */
@@ -24,7 +20,7 @@ export type NodeKind = "folder" | "bookmark";
 
 export type DropPosition = "before" | "after" | "inside";
 
-export interface MoveTarget {
+interface MoveTarget {
   parentId: string;
   /** Omitted means "append to the end of parentId". */
   index?: number;
@@ -39,17 +35,16 @@ export function isFolder(node: BookmarkNode): boolean {
 }
 
 /** What a left-click on a tree row does. */
-export type RowActivation = "toggle" | "open";
+type RowActivation = "toggle" | "open";
 
 /**
- * The click contract for a bookmark row.
+ * The click contract for a bookmark row: a bookmark opens, a folder folds.
  *
- * One click is the whole gesture: on a bookmark it opens the URL, on a folder it
- * folds/unfolds. Deliberately *not* a selection — the main area holds the search
- * box, and a click in the sidebar must not swap it for something else. Reading a
- * bookmark's details is a context-menu action instead.
+ * Deliberately *not* a selection — the main area holds the search box, and a
+ * click in the sidebar must not swap it for something else. Details are a
+ * context-menu action instead.
  *
- * A node with an empty URL counts as a folder here, the same way `nodeKind` and
+ * A node with an empty URL counts as a folder, the same way `nodeKind` and
  * `isFolder` treat it: that is what `getTree()` hands back for a folder row.
  */
 export function resolveRowActivation(node: BookmarkNode): RowActivation {
@@ -57,13 +52,11 @@ export function resolveRowActivation(node: BookmarkNode): RowActivation {
 }
 
 /**
- * Chrome's id for the built-in "Other bookmarks" folder.
- *
- * Matching on the id rather than the title is deliberate: `getTree()` returns
- * the *localized* title ("其他书签" on a Chinese Chrome), so a title match would
- * silently stop working outside English.
+ * Chrome's id for the built-in "Other bookmarks" folder. Matched on the id, not
+ * the title: `getTree()` returns a *localized* title ("其他书签" on a Chinese
+ * Chrome), so a title match would silently stop working outside English.
  */
-export const OTHER_BOOKMARKS_ID = "2";
+const OTHER_BOOKMARKS_ID = "2";
 
 /** Root nodes to render: `getTree()` returns one synthetic root ("0") whose
  *  children are the real top-level folders (Bookmarks bar, Other bookmarks). */
@@ -93,7 +86,7 @@ export function pickRootFolderId(tree: readonly BookmarkNode[]): string | null {
   return roots[0]?.id ?? null;
 }
 
-export function collectIds(
+function collectIds(
   nodes: readonly BookmarkNode[],
   into: Set<string> = new Set(),
 ): Set<string> {
@@ -109,13 +102,11 @@ export function collectIds(
 // ============================================================
 
 /**
- * Does this node answer the query?
+ * Does this node answer the query? Title *or* URL, case-insensitive — pages
+ * titled "Index" or "Untitled" are otherwise unfindable, and a bookmark search
+ * that cannot find them is not worth the key it is bound to.
  *
- * Title *or* URL, case-insensitive. The URL is the half that earns its keep:
- * pages titled "Index" or "Untitled" are otherwise unfindable, and a bookmark
- * search that cannot find them is not worth the key it is bound to.
- *
- * The query is expected pre-lowered — `searchBookmarks` does it once per
+ * The query is expected pre-lowered: `searchBookmarks` does it once per
  * keystroke rather than once per node.
  */
 export function matchesQuery(node: BookmarkNode, needle: string): boolean {
@@ -125,7 +116,7 @@ export function matchesQuery(node: BookmarkNode, needle: string): boolean {
   );
 }
 
-export interface BookmarkSearch {
+interface BookmarkSearch {
   /** True while a query is in effect. False means "draw the whole tree". */
   active: boolean;
   /** The tree to draw: the matches, plus the folders on the way down to them. */
@@ -135,29 +126,28 @@ export interface BookmarkSearch {
 }
 
 /**
- * The tree as the search box should draw it.
+ * The tree as the search box should draw it: the matches, plus the folders on
+ * the way down to them.
  *
- * Three decisions that are the whole of this function:
+ * Matches plus *ancestors*, not plus descendants. A matched folder could equally
+ * well open to show everything inside it — but the top-level folder is called
+ * "Bookmarks bar", so a search for "book" would dump the whole tree and the
+ * filter would look broken. Keeping only the path down to a hit also means the
+ * row component needs no change: the nodes it is handed have already lost their
+ * non-matching children, so `hasChildren`, the twisty and the folder state are
+ * right by construction rather than by a flag.
  *
- * **Matches plus ancestors, not matches plus descendants.** A matched folder
- * could equally well open to show everything inside it — but the top-level
- * folder is called "Bookmarks bar", so a search for "book" would dump the
- * entire tree and the filter would look broken. Keeping only the path down to
- * a hit also means the row component needs *no* change: the nodes it is handed
- * have already lost their non-matching children, so `hasChildren`, the twisty
- * and the folder state are right by construction rather than by a flag.
+ * A pruned *copy*, not a set of hidden ids: the alternative renders everything
+ * and marks the survivors, putting a second definition of "is this row real"
+ * next to the one the DOM already has.
  *
- * **A pruned copy, not a set of hidden ids.** The alternative is to render
- * everything and mark the survivors, which puts a second definition of "is this
- * row real" next to the one the DOM already has.
- *
- * **`reveal` is returned rather than written.** Folder state the user set by
- * hand is not the search's to overwrite — it has to be exactly as they left it
- * when the query clears, so the caller unions the two instead.
+ * `reveal` is returned rather than written — folder state the user set by hand
+ * is not the search's to overwrite, so the caller unions the two and clearing the
+ * query gives back exactly the folds they had.
  *
  * The tree handed in has already been through `visibleTopLevelNodes`, so a
- * hidden "Other bookmarks" is not searchable either. That is deliberate: the
- * results would otherwise point at rows the sidebar refuses to draw.
+ * hidden "Other bookmarks" is not searchable either. Deliberate: the results
+ * would otherwise point at rows the sidebar refuses to draw.
  */
 export function searchBookmarks(
   nodes: readonly BookmarkNode[],
@@ -193,18 +183,14 @@ export function searchBookmarks(
 // ============================================================
 
 /**
- * Which drop zone the cursor is in.
+ * Which drop zone the cursor is in. Folder rows split into equal thirds (top →
+ * before, middle → inside, bottom → after); bookmark rows split at the midpoint
+ * and never accept "inside".
  *
- * Folder rows are split into thirds: top → before, middle → inside (the only
- * way to drop *into* a folder), bottom → after. Bookmark rows split at the
- * midpoint and never accept "inside".
- *
- * Thirds rather than the previous quarters, deliberately. With quarters the
- * outer bands were `height / 4` — 7px on a 28px row — while "inside" took the
- * middle *half*. Reordering two folders side by side therefore meant hitting a
- * 7px target, and missing it dropped the folder *inside* its neighbour: an
- * easy mistake, an unobvious one, and not obvious how to undo. Equal thirds
- * give each intent a comparable target and are far easier to reason about.
+ * Thirds rather than quarters, deliberately: with quarters the outer bands were
+ * 7px on a 28px row while "inside" took the middle *half*, so reordering two
+ * folders side by side meant hitting a 7px target — and missing it dropped the
+ * folder *inside* its neighbour.
  *
  * Geometry is passed in rather than read from an element so this is testable.
  */
@@ -225,14 +211,10 @@ export function computeDropPosition(opts: {
 }
 
 /**
- * Ids that must refuse a drop while `node` is the thing being dragged: the node
- * itself, plus everything inside it.
- *
- * The node itself, because dropping a row onto where it already is means
- * nothing. Its subtree, because `chrome.bookmarks.move` would detach the
- * branch — a folder cannot become its own descendant. The tree used to let the
- * pointer highlight those rows and then quietly do nothing on release; now the
- * rows are told up front and can say so.
+ * Ids that must refuse a drop while `node` is being dragged: the node itself
+ * (dropping a row onto where it already is means nothing) plus everything inside
+ * it (`chrome.bookmarks.move` would detach the branch — a folder cannot become
+ * its own descendant).
  */
 export function dragBlockedIds(node: BookmarkNode | null): Set<string> {
   return node ? collectIds([node], new Set()) : new Set();
@@ -242,35 +224,26 @@ export function dragBlockedIds(node: BookmarkNode | null): Set<string> {
  * Resolve the arguments for `chrome.bookmarks.move`.
  *
  * `index` is a position among the target folder's children **as they are right
- * now** — counted before the dragged node is lifted out. That is the whole of
- * this function, and it is worth saying plainly, because the obvious
- * "helpful" adjustment is wrong and it is wrong quietly.
- *
- * The trap: `chrome.bookmarks.move` does remove the node before inserting it,
- * so moving a node *down* inside one folder looks like it needs `index -= 1`
- * whenever the node starts above the target. Chromium already does exactly
- * that, itself:
+ * now**, counted before the dragged node is lifted out. The obvious "helpful"
+ * adjustment for a same-folder move is wrong, and it is wrong quietly:
+ * `chrome.bookmarks.move` already removes the node before inserting it, itself —
  *
  *     if (old_parent == new_parent && index > old_index) index--;
  *
  *   — `BookmarkModel::Move`, components/bookmarks/browser/bookmark_model.cc
  *
- * Subtracting one here as well cancels it out, and because the error only
+ * Subtracting one here as well cancels that out, and because the error only
  * exists on downward moves it presents as a broken feature rather than an
- * off-by-one: one slot down becomes a no-op (Chromium's own early-out reads
- * `index == old_index + 1` as "already in this position"), two slots down moves
- * one, and every upward move is correct — moving up is the case where the
- * platform's adjustment and ours both leave the index alone. `tests/bookmarks.test.ts`
- * now runs every ordered pair through a transcription of Chromium's rules, so
- * this cannot come back as a plausible-looking line of arithmetic.
+ * off-by-one. `tests/bookmarks.test.ts` runs every ordered pair through a
+ * transcription of Chromium's rules, so it cannot come back.
  *
- * A consequence worth knowing when reading the call site: dropping just before
- * the row that already follows the dragged one is a genuine no-op, not a
- * failure — that drop asks for the order the list is already in.
+ * A consequence worth knowing at the call site: dropping just before the row
+ * that already follows the dragged one is a genuine no-op, not a failure — that
+ * drop asks for the order the list is already in.
  *
- * `inside` omits `index` on purpose. The API substitutes
- * `parent.children().size()`, i.e. append, which is the only sane reading of a
- * drop onto a folder's middle third.
+ * `inside` omits `index` on purpose: the API substitutes
+ * `parent.children().size()`, i.e. append, the only sane reading of a drop onto a
+ * folder's middle third.
  *
  * @returns `{ parentId, index? }`, or null when the move is impossible.
  */

@@ -1,23 +1,19 @@
 <script setup lang="ts">
 /**
- * Draggable divider that sits invisibly in the gutter, showing a 2px accent bar
- * on hover.
+ * Draggable divider: invisible in the gutter, a 2px accent bar on hover.
  *
- * It is rendered unconditionally — expanded *and* collapsed. The drag that
- * collapses the sidebar is the same gesture as the drag that resizes it, so the
- * element under the pointer has to outlive the state change it causes (see the
- * note in `useSidebar.startResize`). Collapsed, the sidebar hides itself with
- * `v-show` and this handle ends up flush against the window edge it is docked
- * to, which is exactly where the hand already is when you want the sidebar back.
+ * Rendered unconditionally — expanded *and* collapsed. Collapsing the sidebar is
+ * the same drag as resizing it, so the element under the pointer has to outlive
+ * the state change it causes (see `useSidebar.startResize`). Collapsed, the
+ * sidebar hides with `v-show` and this handle ends up flush against the window
+ * edge, which is where the hand already is.
  *
- * Which edge that is depends on `position`, and so does the negative margin
- * that puts it there: the divider cancels the *sidebar's* gutter, and the
- * sidebar's gutter is on the divider's left when docked left and on its right
- * when docked right. The hint text mirrors with it, because "drag left to hide"
- * is only true half the time.
+ * The negative margin that puts it there depends on `position`, and so does the
+ * hint text: the divider cancels the *sidebar's* gutter, which is on the
+ * divider's left when docked left and on its right when docked right.
  *
- * Intentional hole for native listeners: the parent binds `@pointerdown` and
- * Vue forwards it to this element, so the drag logic lives in `useSidebar`.
+ * The native listener is bound by the parent and forwarded by Vue, so the drag
+ * logic lives in `useSidebar`.
  */
 import { computed } from "vue";
 import type { SidebarPosition } from "@/core/settings";
@@ -33,16 +29,10 @@ const toward = computed(() => (isRight.value ? "right" : "left"));
 const away = computed(() => (isRight.value ? "left" : "right"));
 
 /**
- * The tooltip describes the drag and nothing else.
- *
- * It used to end with the key that does the same thing from the keyboard. That
- * was dropped along with the modifier: the binding is now `s`, a bare letter
- * that only fires when the caret is *not* in a text field — and this tooltip is
- * read while hovering, which says nothing about where the caret is. On a new tab
- * the caret starts in the search box, so the old tooltip could promise a key
- * that would type an `s` instead. Keys are documented where they can be read as
- * a set, in the settings page's Shortcuts list; `/` and `p` have never had a
- * tooltip either.
+ * The tooltip describes the drag and nothing else — no key hint. The binding is a
+ * bare letter that only fires when the caret is not in a text field, and a
+ * tooltip read while hovering says nothing about where the caret is. Keys are
+ * documented as a set in the settings page's Shortcuts list.
  */
 const hint = computed(() =>
   props.collapsed

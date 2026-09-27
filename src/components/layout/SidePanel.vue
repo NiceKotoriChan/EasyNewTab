@@ -1,14 +1,10 @@
 <script setup lang="ts">
 /**
- * Sidebar sheet: a segmented switch (bookmarks / history) above a scrolling
- * body.
+ * Sidebar sheet: a segmented switch (bookmarks / history) above a scrolling body.
  *
- * The switch lives here because the activity bar is gone — with two panels
- * total, a full icon rail was more chrome than the choice deserved. The header
- * now holds nothing else: the settings entry moved to the extension's own
- * options page (it never belonged to the new tab page) and hiding the sidebar
- * became a drag on the divider, so the two 26px buttons that used to sit here
- * are gone and the switch gets the full width.
+ * The switch lives here rather than in an icon rail because there are only two
+ * panels, and it is the header's only content: settings belong to the options
+ * page, and hiding the sidebar is a drag on the divider.
  */
 import Icon from "../ui/Icon.vue";
 import type { IconName } from "../ui/mdi-icons";
