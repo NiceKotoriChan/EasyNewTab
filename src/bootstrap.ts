@@ -1,41 +1,39 @@
 /**
  * Keeping an extension page from surviving its own extension.
  *
- * See `core/lifecycle.ts` for why this exists and for the decision itself;
- * this file is only the asking. Every channel out of a page goes through the
- * `chrome` object, and when the extension is reloaded or auto-updated that
- * object is orphaned *silently* — so the page has to poll for its own death.
+ * Reloading the extension, or letting Chrome auto-update it, orphans every page
+ * that was already open: their `chrome` bindings are dead, so every listener
+ * they registered — `storage.onChanged` included — never fires again. The page
+ * keeps rendering perfectly, which is what makes it nasty: it looks alive, it
+ * just never reacts.
+ *
+ * Nothing can be *pushed* at the page, because every channel goes through the
+ * dead `chrome` object. So the page has to ask. The asking lives here; the
+ * decision — when healing is legitimate and when it would be a loop — lives in
+ * `core/lifecycle.ts`, which is pure and therefore testable.
  *
  * Call `watchExtensionContext()` once per page, before mounting.
  */
-
 import {
   INITIAL_CONTEXT_HEALTH,
   resolveContextHealth,
   type ContextHealth,
 } from "@/core/lifecycle";
 
-/** Where the reload budget is kept. `sessionStorage` is per tab, so it
- *  survives exactly the reloads it is counting and no more. */
+/** `sessionStorage` is per tab, so the budget survives exactly the reloads it
+ *  is counting and no more. */
 const RELOADS_KEY = "easynewtab:context-reloads";
 
-/**
- * Backstop re-check interval, for a page that is on screen and never receives
- * a focus event — a window sitting on a second monitor through an auto-update.
- * Those are the coordinates the user will come back to, so it had better be
- * the page that reloads itself rather than one they have to remember to fix.
- */
+/** Backstop re-check, for a page on screen that never receives a focus event —
+ *  a window sitting on a second monitor through an auto-update. */
 const PROBE_MS = 10_000;
 
 /**
- * Is this page still attached to a live extension?
- *
- * `runtime.id` is a memory read and is not a reliable enough signal on its own,
- * so the answer comes from a real round trip: an orphaned page throws
- * "Extension context invalidated" the instant it touches a storage API. Both
- * are wrapped because either one can be the thing that throws.
+ * `runtime.id` is a memory read and not a reliable signal on its own, so the
+ * answer comes from a real round trip: an orphaned page throws "Extension
+ * context invalidated" the instant it touches a storage API.
  */
-export async function extensionContextAlive(): Promise<boolean> {
+async function extensionContextAlive(): Promise<boolean> {
   try {
     if (typeof chrome === "undefined" || !chrome.runtime?.id) return false;
     await chrome.storage.local.get(null);
@@ -50,8 +48,8 @@ function readReloads(): number {
     const value = Number(globalThis.sessionStorage?.getItem(RELOADS_KEY));
     return Number.isFinite(value) && value > 0 ? value : 0;
   } catch {
-    // Unavailable (SSR, storage disabled) — the budget then simply applies per
-    // page load instead of per tab. Not worth failing over.
+    // Unavailable (SSR, storage disabled) — the budget then applies per page
+    // load instead of per tab. Not worth failing over.
     return 0;
   }
 }
@@ -69,8 +67,7 @@ function writeReloads(reloads: number): void {
  *
  * Reloading is the only possible repair: the dead bindings cannot be
  * re-established from inside, and a fresh load picks up whichever build the
- * extension is actually running now — which also covers the sibling problem of
- * a page that was opened before a rebuild and is still executing old code.
+ * extension is actually running now.
  */
 export function watchExtensionContext(): void {
   let health: ContextHealth = {

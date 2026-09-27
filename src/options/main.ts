@@ -1,6 +1,6 @@
 import { createApp } from "vue";
 import OptionsApp from "./OptionsApp.vue";
-import { watchExtensionContext } from "@/chrome/lifecycle";
+import { watchExtensionContext } from "@/bootstrap";
 import "@/styles/tokens.css";
 import "@/styles/base.css";
 

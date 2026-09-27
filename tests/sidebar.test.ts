@@ -1,10 +1,9 @@
 /**
- * Unit tests for the sidebar drag thresholds.
+ * The sidebar's drag thresholds.
  *
- * These exist because the collapse gesture has no other witness: dragging the
- * divider is the only way to hide the sidebar, so an off-by-one in the
- * thresholds shows up as "the sidebar won't close" (or worse, refuses to come
- * back) with nothing in the console to explain it.
+ * The collapse gesture has no other witness: dragging the divider is the only
+ * way to hide the sidebar, so an off-by-one shows up as "the sidebar won't
+ * close" — or worse, refuses to come back.
  */
 
 import assert from "node:assert/strict";
@@ -12,11 +11,12 @@ import test from "node:test";
 
 import {
   SIDEBAR_COLLAPSE_AT,
+  SIDEBAR_MAX,
+  SIDEBAR_MIN,
   clampSidebarWidth,
   dragWidth,
   resolveSidebarDrag,
-} from "../src/core/sidebar.ts";
-import { SIDEBAR_MAX, SIDEBAR_MIN } from "../src/core/settings.ts";
+} from "../src/core/settings.ts";
 
 test("the collapse threshold sits below the minimum usable width", () => {
   // If it ever drifted above SIDEBAR_MIN the two states would overlap and a

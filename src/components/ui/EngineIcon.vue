@@ -3,7 +3,7 @@
  * Brand marks for the search engines — inline SVG, zero network round trips.
  */
 import { computed } from "vue";
-import type { EngineId } from "@/core/search/engines";
+import type { EngineId } from "@/core/engines";
 
 interface Mark {
   viewBox: string;

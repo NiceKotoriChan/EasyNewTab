@@ -1,27 +1,31 @@
 /**
- * Most-visited sites — loaded once per page, for the welcome pane's shortcut row.
+ * Most-visited sites, for the welcome pane's shortcut row.
  *
- * There is no `onChanged` for this list and none is missed: a new tab page is a
- * fresh instance every time one is opened, so "once per page load" already *is*
- * "as fresh as the data gets". Re-reading on focus would be churn with nothing
- * visible to show for it.
- *
- * `reload` is exposed as a seam, not as a feature — the render check drives it
- * to prove the empty case (a profile with no history, or a build without the
- * permission) draws nothing at all rather than an empty box. Same reason
- * `useBookmarks` exposes `toggleExpanded`.
+ * Loaded once per page: a new tab is a fresh instance every time, so "once per
+ * page load" already is "as fresh as this data gets".
  */
-
 import { ref, type Ref } from "vue";
-import * as api from "@/chrome/topSites";
 import { selectTopSites, type TopSite } from "@/core/topSites";
 
-const sites = ref<TopSite[]>([]);
+/**
+ * An unavailable list is not an error worth showing: no history yet, incognito,
+ * and a build without the permission all mean the same thing here — no row.
+ */
+async function getTopSites() {
+  try {
+    return await chrome.topSites.get();
+  } catch (err) {
+    console.warn("Failed to load top sites:", err);
+    return [];
+  }
+}
 
+const sites = ref<TopSite[]>([]);
 let bootstrapped = false;
 
+/** Exposed as a seam: the render check drives it to prove the empty case. */
 async function reload(): Promise<void> {
-  sites.value = selectTopSites(await api.getTopSites());
+  sites.value = selectTopSites(await getTopSites());
 }
 
 function bootstrap(): void {
@@ -30,12 +34,10 @@ function bootstrap(): void {
   void reload();
 }
 
-export interface UseTopSites {
+export function useTopSites(): {
   sites: Ref<TopSite[]>;
   reload: () => Promise<void>;
-}
-
-export function useTopSites(): UseTopSites {
+} {
   bootstrap();
   return { sites, reload };
 }

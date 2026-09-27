@@ -28,7 +28,7 @@
  */
 import EngineIcon from "./ui/EngineIcon.vue";
 import { useSettings } from "@/composables/useSettings";
-import { ENGINES, ENGINE_IDS, type EngineId } from "@/core/search/engines";
+import { ENGINES, ENGINE_IDS, type EngineId } from "@/core/engines";
 
 const { settings, update } = useSettings();
 

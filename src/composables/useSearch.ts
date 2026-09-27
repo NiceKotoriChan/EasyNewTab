@@ -16,7 +16,7 @@ import {
   normalizeUrl,
   supportsSuggestions,
   type EngineId,
-} from "@/core/search/engines";
+} from "@/core/engines";
 import { useSettings } from "./useSettings";
 
 const SUGGEST_DEBOUNCE_MS = 200;

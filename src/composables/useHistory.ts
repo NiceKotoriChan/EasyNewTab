@@ -1,16 +1,39 @@
 /**
  * History state — shared by the sidebar list and the detail pane.
- *
- * There is no "how many items" setting any more: the whole history is
- * requested in one go (`chrome/history.ts`), so there is nothing to keep
- * re-querying when a preference changes. The item count that used to be
- * published here existed only for the status bar.
  */
-
 import { computed, ref, type ComputedRef, type Ref } from "vue";
-import * as api from "@/chrome/history";
 import { groupHistory, type HistoryGroup, type HistoryItemLike } from "@/core/history";
 import { debounce } from "@/core/utils";
+
+/**
+ * Every page ever visited, newest first. Three of `history.search`'s four fields
+ * default to something narrower than "everything": `maxResults` is 100,
+ * `startTime` is 24 hours ago, and `text: ""` is what means "match all". One
+ * million stands in for "no limit" — the API throws on anything below 1.
+ */
+const NO_LIMIT = 1_000_000;
+
+async function searchHistory(): Promise<HistoryItemLike[]> {
+  try {
+    return await chrome.history.search({
+      text: "",
+      startTime: 0,
+      maxResults: NO_LIMIT,
+    });
+  } catch (err) {
+    console.error("Failed to load history:", err);
+    return [];
+  }
+}
+
+function onHistoryChanged(cb: () => void): () => void {
+  chrome.history.onVisited.addListener(cb);
+  chrome.history.onVisitRemoved.addListener(cb);
+  return () => {
+    chrome.history.onVisited.removeListener(cb);
+    chrome.history.onVisitRemoved.removeListener(cb);
+  };
+}
 
 const items = ref<HistoryItemLike[]>([]);
 const loading = ref(true);
@@ -23,7 +46,7 @@ const scheduleReload = debounce(() => void reload(), 300);
 async function reload(): Promise<void> {
   loading.value = true;
   try {
-    items.value = await api.searchHistory();
+    items.value = await searchHistory();
     failed.value = false;
   } catch (err) {
     console.error("Failed to load history:", err);
@@ -37,11 +60,11 @@ function bootstrap(): void {
   if (bootstrapped) return;
   bootstrapped = true;
   void reload();
-  // Visits and removals arrive in bursts (a bulk delete fires once per URL).
-  api.onHistoryChanged(scheduleReload);
+  // Visits and removals arrive in bursts — a bulk delete fires once per URL.
+  onHistoryChanged(scheduleReload);
 }
 
-export interface UseHistory {
+export function useHistory(): {
   items: Ref<HistoryItemLike[]>;
   groups: ComputedRef<HistoryGroup[]>;
   loading: Ref<boolean>;
@@ -50,9 +73,7 @@ export interface UseHistory {
   reload: () => Promise<void>;
   remove: (url: string) => Promise<void>;
   clearAll: () => Promise<void>;
-}
-
-export function useHistory(): UseHistory {
+} {
   bootstrap();
 
   const groups = computed(() => groupHistory(items.value));
@@ -62,12 +83,12 @@ export function useHistory(): UseHistory {
   }
 
   async function remove(url: string): Promise<void> {
-    await api.deleteUrl(url);
+    await chrome.history.deleteUrl({ url });
     await reload();
   }
 
   async function clearAll(): Promise<void> {
-    await api.deleteAllHistory();
+    await chrome.history.deleteAll();
     await reload();
   }
 
