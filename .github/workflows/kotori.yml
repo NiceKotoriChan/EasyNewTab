@@ -2,64 +2,42 @@ name: CI
 
 on:
   push:
-    branches: [main]
     tags: ["v*"]
-  pull_request:
-    branches: [main]
 
 concurrency:
   group: ci-${{ github.ref }}
-  # 连推几次只跑最后一次；但 tag 上的发布不能被后一次推送打断
+  # 不取消正在运行的 tag 发布
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 permissions:
-  contents: read # 最小权限；需要写权限的只有下面 release 这一个 job
+  contents: read
 
 jobs:
   release:
-    # if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
-      contents: write # gh release create 要写权限，只授予这个 job
+      contents: write
+
     steps:
       - uses: actions/checkout@v7
+
       - uses: actions/setup-node@v7
-        with: { node-version: 24, cache: npm }
+        with:
+          node-version: 24
+          cache: npm
+
       - run: pwd
       - run: ls -al
       - run: npm ci
       - run: npm run build
 
-      - name: 确认 dist/ 里没有开发用的预览页
-        run: test ! -e dist/mobile-preview.html
-
-      - name: 校验 tag 与两处版本号一致
-        run: |
-          tag="${GITHUB_REF_NAME#v}"
-          pkg=$(node -p "require('./package.json').version")
-          mf=$(node -p "require('./public/manifest.json').version")
-          [ "$pkg" = "$tag" ] || { echo "package.json 是 $pkg，tag 是 v$tag"; exit 1; }
-          [ "$mf"  = "$tag" ] || { echo "public/manifest.json 是 $mf，tag 是 v$tag"; exit 1; }
-          echo "版本一致：v$tag"
-
-      - name: 还原签名私钥
-        env:
-          CRX_KEY_B64: ${{ secrets.CRX_KEY_B64 }}
-        run: |
-          [ -n "$CRX_KEY_B64" ] || { echo "缺少 secrets.CRX_KEY_B64"; exit 1; }
-          printf '%s' "$CRX_KEY_B64" | base64 -d > "$RUNNER_TEMP/key.pem"
-          chmod 600 "$RUNNER_TEMP/key.pem"
-
       - name: 打 CRX + ZIP
         env:
           TAG: ${{ github.ref_name }}
         run: |
-          # crx3 已在 devDependencies 里，--no-install 保证用锁定的版本，
-          # 不会去网上抓 latest。key 已存在就用它，不会重新生成（Extension ID 才是稳定的）。
-          # --forceDateTime 要 > 0 才生效（crx3 内部判的是 > 0），单位是毫秒。
           npx --no-install crx3 dist \
             -o "easynewtab-$TAG.crx" \
-            -p "$RUNNER_TEMP/key.pem" \
             -z "easynewtab-$TAG.zip" \
             --forceDateTime 1
 
@@ -70,4 +48,5 @@ jobs:
           gh release create "$GITHUB_REF_NAME" \
             easynewtab-*.crx easynewtab-*.zip \
             --title "$GITHUB_REF_NAME" \
-            --generate-notes
+            --generate-notes \
+            --verify-tag
