@@ -2,6 +2,7 @@ name: kotori
 
 on:
   push:
+    tags: ["v*"]
 
 concurrency:
   group: ci-${{ github.ref }}
