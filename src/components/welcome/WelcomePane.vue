@@ -3,7 +3,7 @@
  * The main-area view when nothing is selected: a quiet clock and the hero search box,
  * so opening a new tab and typing still just works.
  *
- * Compact, this is the top card of a stacked shell and shrinks to the search box and
+ * Compact, this is the top pane of a stacked shell and shrinks to the search box and
  * its engine row — the clock and the most-visited row are ambient information a wide
  * window has room to say and a phone does not.
  *
@@ -104,8 +104,8 @@ defineExpose({ focus: () => field.value?.focus() });
   overflow-y: auto;
 }
 
-/* Stacked, this is a card rather than the page, so there is no tall window to
-   put the box in the upper third of — the card is already only as tall as its
+/* Stacked, this is a pane rather than the page, so there is no tall window to
+   put the box in the upper third of — the pane is already only as tall as its
    contents. The landing zone becomes ordinary padding. */
 .welcome.is-compact {
   padding: 20px 16px 18px;

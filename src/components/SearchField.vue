@@ -4,9 +4,10 @@
  *
  * Used by the welcome pane (hero size, autofocused). All state comes from
  * `useSearch()`, so every entry point shares one engine choice and one behaviour
- * definition. The hero variant is deliberately large — 58px tall, fully rounded,
- * floating on its own shadow — because this box is the one interactive thing on a page
- * whose entire purpose is "open a tab and type". `showEngines` puts the engine row back
+ * definition. The hero variant is deliberately large — 58px tall, fully rounded — because
+ * this box is the one interactive thing on a page whose entire purpose is "open a tab and
+ * type". It sits flat on the page like every other field: the size and the focus ring are
+ * what mark it out, not elevation. `showEngines` puts the engine row back
  * under the input; it lives in the search box rather than a settings screen, which is
  * where you look when a query came back from the wrong engine.
  */
@@ -182,7 +183,6 @@ defineExpose({
   background: var(--input-bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
-  box-shadow: var(--shadow-xs);
   transition:
     border-color var(--dur) var(--ease),
     box-shadow var(--dur) var(--ease);
@@ -202,16 +202,10 @@ defineExpose({
   height: 58px;
   padding: 0 12px 0 20px;
   gap: 12px;
-  box-shadow: var(--shadow-md);
 }
 
 .is-large .field:hover {
   border-color: var(--border-strong);
-  box-shadow: var(--shadow-raise);
-}
-
-.is-large .field:focus-within {
-  box-shadow: 0 0 0 4px var(--accent-soft), var(--shadow-raise);
 }
 
 .prefix {

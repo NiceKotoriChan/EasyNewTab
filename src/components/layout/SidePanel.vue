@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Sidebar sheet: a segmented switch (bookmarks / history) above a scrolling body.
+ * Sidebar pane: a segmented switch (bookmarks / history) above a scrolling body.
  *
  * The switch lives here rather than in an icon rail because there are only two
  * panels, and it is the header's only content: settings belong to the options
@@ -50,15 +50,13 @@ const TABS: Array<{
 </template>
 
 <style scoped>
+/* No background, border, radius or shadow: the pane is the page colour, and the
+   line beside it belongs to the sash that draws it. */
 .side-panel {
   display: flex;
   flex-direction: column;
   min-height: 0;
   height: 100%;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 

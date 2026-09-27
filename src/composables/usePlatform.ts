@@ -1,7 +1,7 @@
 /**
  * The two axes the app adapts on, deliberately kept separate:
  *
- * - `isCompact` (≤720px) — is there room? Two sheets stop fitting side by side,
+ * - `isCompact` (≤720px) — is there room? Two panes stop fitting side by side,
  *   so the shell stacks them. A fact about the *window*: a narrow desktop window
  *   gets it too.
  * - `isTouch` (coarse pointer) — what can the input do? No right button (so

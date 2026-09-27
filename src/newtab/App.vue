@@ -1,10 +1,10 @@
 <script setup lang="ts">
 /**
- * New tab page shell: two floating sheets on a tinted background, and no chrome of its
- * own. One flag, two layouts — see `.middle.is-stacked` below for what stacking changes,
- * and why the DOM order never does.
+ * New tab page shell: two panes on one flat canvas, divided by a hairline rather than by
+ * elevation, and no chrome of its own. One flag, two layouts — see `.middle.is-stacked`
+ * below for what stacking changes, and why the DOM order never does.
  *
- * The main area is always the search card: a sidebar click opens or folds a row and never
+ * The main area is always the search pane: a sidebar click opens or folds a row and never
  * takes it away. Both stores are instantiated here so the data is already in flight when
  * the panel mounts.
  */
@@ -244,26 +244,26 @@ onBeforeUnmount(() => {
 
 /* Ordered after the two rules above on purpose: same specificity, so these win and the
    gutter ends up between the sheets vertically rather than beside them. */
+/* Stacked there is no sash to draw the line, so the lower pane carries it instead. */
 .middle.is-stacked .sidebar {
   flex: 1;
   min-height: 0;
   height: auto;
   margin: var(--gutter) 0 0;
+  border-top: 1px solid var(--border);
 }
 
+/* No background, border, radius or shadow: both panes are the page colour, and what tells
+   them apart is the hairline the sash draws down the gap between them. */
 .main {
   flex: 1;
   min-width: 0;
   height: 100%;
   overflow: hidden;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
 }
 
-/* The search card is exactly as tall as its contents and the sidebar takes the rest of the
-   column. A fixed share would leave the card mostly empty above the box, which is the one
+/* The search pane is exactly as tall as its contents and the sidebar takes the rest of the
+   column. A fixed share would leave the pane mostly empty above the box, which is the one
    thing on it. */
 .middle.is-stacked .main {
   flex: none;

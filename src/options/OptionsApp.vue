@@ -177,23 +177,22 @@ function setSidebarPosition(id: SidebarPosition): void {
   background: var(--app-bg);
 }
 
+/* One column, capped, with no panel drawn round it — the page is the panel. A row
+   is a label on the left and a control on the right, so on a 1600px window an
+   uncapped column would turn the distance between the two into a foot of empty
+   space. */
 .content {
   width: 100%;
-  /* One column, capped. A row is a label on the left and a control on the
-     right, so on a 1600px window an uncapped column would turn the distance
-     between the two into a foot of empty space. */
   max-width: 660px;
   padding: 26px 30px 30px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
 }
 
-/* Space above a section does the separating — there is no title bar for the
-   first one to clear. */
+/* A rule does the separating, with air on both sides of it. The first section has
+   none above it: it is the top of the page. */
 .panel + .panel {
-  margin-top: 32px;
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
 }
 
 .panel-head {
@@ -222,13 +221,13 @@ function setSidebarPosition(id: SidebarPosition): void {
   color: var(--text);
 }
 
-/* Rows live in one bordered container rather than floating on the card: the
+/* Rows live in one outlined container rather than sitting bare on the page: the
    outline is what says "these belong together", and it gives the hover wash
-   somewhere to stop. */
+   somewhere to stop. Square, like every other region — the radius is reserved for
+   the controls inside it. */
 .group {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
@@ -414,8 +413,8 @@ kbd {
   box-shadow: var(--shadow-xs);
 }
 
-/* Narrow, the card is most of the window rather than a column inside it, so the
-   card's own padding and the rows' is what has to give. The label may wrap; the
+/* Narrow, the column is most of the window rather than a column inside it, so its
+   own padding and the rows' is what has to give. The label may wrap; the
    control keeps its size, because a switch that shrank with the window would be
    the one thing on the page that got harder to hit on the device that has the
    least room to aim with. */

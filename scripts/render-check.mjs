@@ -533,30 +533,30 @@ try {
 
   isCompact.value = true;
   const stacked = await renderToString(createSSRApp(App));
-  expect(stacked, "is-stacked", "narrow: the two sheets become a column");
+  expect(stacked, "is-stacked", "narrow: the two panes become a column");
   // The divider is not merely hidden — the shell stops rendering it, because
   // there is no column to drag across and no collapsed state for it to come back
   // from. `v-show` would have left it in the DOM, which is what the collapsed
   // pass above relies on for the *other* layout.
   expectAbsent(stacked, 'class="sash"', "narrow: the divider is gone, not hidden");
   expectAbsent(stacked, 'aria-label="Resize sidebar"', "narrow: nothing offers to resize a column that is no longer there");
-  expect(stacked, 'class="sidebar"', "narrow: the sidebar is still the sidebar, just the lower of the two sheets");
+  expect(stacked, 'class="sidebar"', "narrow: the sidebar is still the sidebar, just the lower of the two panes");
   expectAbsent(stacked, "is-right", "narrow: docking left and right is meaningless while stacked, and says nothing");
   // Both halves of the pane go: the clock and the most-visited row are ambient
-  // information, and the card is the search box and its engine row.
-  expectAbsent(stacked, 'class="date"', "narrow: the search card drops the clock");
+  // information, and the pane is the search box and its engine row.
+  expectAbsent(stacked, 'class="date"', "narrow: the search pane drops the clock");
   expectAbsent(stacked, 'aria-label="Most visited sites"', "narrow: and the most-visited row with it");
-  expect(stacked, "search-field", "narrow: what is left in the card is the search box");
+  expect(stacked, "search-field", "narrow: what is left in the pane is the search box");
   expect(stacked, "is-large", "narrow: still the hero variant");
   expect(stacked, "DuckDuckGo", "narrow: and the engine row under it");
-  // The visual order says "search card on top" and it is CSS, which an SSR
+  // The visual order says "search pane on top" and it is CSS, which an SSR
   // render cannot show: the DOM order is unchanged in both layouts and the shell
   // reverses the column. So the source is what has to be read.
   const shellSource = await readSource("src/newtab/App.vue", "utf8");
-  expect(shellSource, "flex-direction: column-reverse", "narrow: the column is reversed, so the search card lands on top with the DOM order untouched");
+  expect(shellSource, "flex-direction: column-reverse", "narrow: the column is reversed, so the search pane lands on top with the DOM order untouched");
 
   // `collapsed` is a desktop measurement and nothing in a stacked shell can set
-  // it either way, so a leftover `true` must not hide the lower sheet — there
+  // it either way, so a leftover `true` must not hide the lower pane — there
   // would be no way to bring it back.
   collapsed.value = true;
   const stackedCollapsed = await renderToString(createSSRApp(App));
@@ -714,7 +714,7 @@ try {
     );
     expectEqual(exists, false, `${gone} stays deleted`);
   }
-  // And the shell has nothing to swap the search card out with: it imports no detail view,
+  // And the shell has nothing to swap the search pane out with: it imports no detail view,
   // so the main area is the search box in every pass above — not by state, but because there
   // is no other branch.
   expectAbsent(

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 /**
- * Draggable divider: invisible in the gutter, a 2px accent bar on hover.
+ * Draggable divider: the hairline between the two panes, and the accent it turns on hover.
  *
  * Rendered in the side-by-side layout both expanded and collapsed, because collapsing
  * *is* the same drag as resizing and the element under the pointer has to outlive the
- * state change it causes. The shell drops it once the sheets are stacked: there is no
- * column to drag across. The negative margin and the hint text both depend on
+ * state change it causes. The shell drops it once the panes are stacked: there is no
+ * column to drag across, and the lower pane grows a top border instead. The negative
+ * margin and the hint text both depend on
  * `position` — the divider cancels the *sidebar's* gutter, which is on its left when
  * docked left and on its right when docked right.
  */
@@ -67,15 +68,17 @@ const hint = computed(() =>
   margin-right: calc(-1 * var(--gutter));
 }
 
+/* The line itself, with the gutter around it as the hit area. It runs the full
+   height so it reads as a divider rather than as a widget, and hovering recolours
+   it rather than growing it: the drag lands where the line already is. */
 .grip {
   position: absolute;
-  top: 50%;
+  top: 0;
+  bottom: 0;
   left: 50%;
-  width: 2px;
-  height: 32px;
-  transform: translate(-50%, -50%);
-  border-radius: var(--radius-full);
-  background: transparent;
+  width: 1px;
+  transform: translateX(-50%);
+  background: var(--border);
   transition: background var(--dur) var(--ease);
 }
 
@@ -84,11 +87,14 @@ const hint = computed(() =>
   background: var(--accent);
 }
 
-/* Collapsed this handle is the only way back, so it keeps a resting hint
-   instead of appearing solely on hover: a short dash at the window edge, which
-   the pointer finds long before the tooltip does. */
+/* Collapsed there is no second pane to divide, so the line becomes the way back
+   instead: a short dash at the window edge, which the pointer finds long before
+   the tooltip does. */
 .sash.is-collapsed .grip {
+  top: 50%;
+  bottom: auto;
   height: 56px;
+  transform: translate(-50%, -50%);
   background: var(--border-strong);
 }
 

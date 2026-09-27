@@ -4,7 +4,7 @@
  *
  * The mobile adaptation is driven by two media queries, and both are invisible to the
  * headless checks: `render-check.mjs` can prove that a component stops *rendering* the
- * clock, but nothing in a Node process can prove that the search card ends up *above* the
+ * clock, but nothing in a Node process can prove that the search pane ends up *above* the
  * sidebar, because that is a CSS ordering decision. This script renders the same
  * components and puts the result somewhere eyes can reach. The two pages are framed as
  * 390×844 iframes rather than drawn inline, so the width media queries in the shipped CSS
@@ -30,7 +30,7 @@ const DIST = "dist";
 const PHONE = { width: 390, height: 844 };
 
 installChromeStub();
-// The top-sites row is the noisiest part of the desktop card and the phone
+// The top-sites row is the noisiest part of the desktop pane and the phone
 // drops it entirely, so the fixture is trimmed rather than its presence being
 // argued about.
 setTopSites([]);
