@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Easy New Tab",
+  "version": "3.0.0",
+  "description": "New tab page built as an IDE-style shell: bookmark tree, history and web search.",
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "permissions": ["bookmarks", "history", "storage", "favicon", "topSites"],
+  "host_permissions": [
+    "https://suggestqueries.google.com/*",
+    "https://api.bing.com/*",
+    "https://duckduckgo.com/*",
+    "https://suggest.yandex.com/*",
+    "https://s.search.bilibili.com/*"
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; img-src 'self' chrome: https: data:; connect-src 'self' https://suggestqueries.google.com https://api.bing.com https://duckduckgo.com https://suggest.yandex.com https://s.search.bilibili.com;"
+  }
+}

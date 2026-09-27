@@ -1,0 +1,115 @@
+/* ============================================================
+   Reset + a handful of genuinely shared primitives.
+   Anything used by a single component lives in that component's
+   scoped <style> block.
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  /* The shell is a fixed, non-scrolling viewport — panes scroll, not the page. */
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text);
+  background: var(--app-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+#app,
+#app > * {
+  height: 100%;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  transition:
+    background var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+input {
+  font: inherit;
+  color: inherit;
+}
+
+/* Keyboard users get a ring, mouse users do not. */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+::selection {
+  background: var(--selection-bg);
+}
+
+/* ---- Scrollbars: thin, no buttons, only visible when useful ---- */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(120, 128, 145, 0.35);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 108, 125, 0.6);
+  background-clip: content-box;
+}
+
+/* ---- Shared bits ---- */
+.scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.pane-empty {
+  padding: 20px 12px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.pane-empty.is-error {
+  color: var(--danger);
+}
+
+mark.hl {
+  background: transparent;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+/* Micro-label used above detail fields and list groups. */
+.field-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+}

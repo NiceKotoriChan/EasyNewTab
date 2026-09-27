@@ -1,0 +1,111 @@
+/* ============================================================
+   Design tokens.
+   Light and dark are the same shape: a tinted app background, white-ish
+   surfaces that float on it, soft blue for selection. Every component
+   consumes these by name so the two themes never drift apart.
+   ============================================================ */
+
+:root {
+  color-scheme: light dark;
+
+  /* Surfaces */
+  --app-bg: #f4f5f8; /* behind the floating panels */
+  --surface: #ffffff; /* panels, popovers */
+  --inset: #f0f1f5; /* segmented-control track, chip backgrounds */
+  --border: #e8eaef;
+  --border-strong: #d9dde5;
+  --hover-bg: #f2f4f8;
+  --input-bg: #ffffff;
+  --overlay-bg: rgba(18, 21, 27, 0.34);
+  /* Chromium's new tab shortcuts: the favicon sits on a filled circle, and the
+     whole 112px tile washes to a translucent grey on hover. Two tokens rather
+     than literals in the component because both are theme-dependent, and the
+     values are Chromium's own (`rgb(229, 231, 232)` and `rgba(grey-900, .1)`)
+     so the row matches the page it is modelled on. */
+  --tile-bg: #e5e7e8;
+  --tile-hover: rgba(27, 31, 39, 0.1);
+
+  /* Text */
+  --text: #1b1f27;
+  --text-dim: #5b6270;
+  --text-muted: #8b93a1;
+
+  /* Accents */
+  --accent: #2f6feb;
+  --accent-fg: #ffffff;
+  --accent-soft: rgba(47, 111, 235, 0.1);
+  --selection-bg: rgba(47, 111, 235, 0.12);
+  --selection-fg: #1f57c9;
+  --danger: #cf3f3f;
+  --danger-soft: rgba(207, 63, 63, 0.1);
+  /* The one glyph that is tinted rather than monochrome: a folder row. It is an
+     alias, not a second blue — a folder sits next to blue selection fills and a
+     blue focus ring, so any blue of its own would read as a near-miss. Because
+     custom properties substitute lazily, this follows the dark block's
+     `--accent` without being redeclared there. */
+  --icon-folder: var(--accent);
+
+  /* Metrics */
+  --row-h: 28px;
+  --gutter: 10px;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 999px;
+
+  /* Elevation */
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.07), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-md: 0 6px 18px rgba(16, 24, 40, 0.1), 0 1px 3px rgba(16, 24, 40, 0.05);
+  /* Hover state of the hero search box — one step above --shadow-md. */
+  --shadow-raise: 0 10px 30px rgba(16, 24, 40, 0.13),
+    0 2px 6px rgba(16, 24, 40, 0.06);
+  --shadow-lg: 0 20px 48px rgba(16, 24, 40, 0.18), 0 2px 8px rgba(16, 24, 40, 0.08);
+
+  /* Motion */
+  --dur: 130ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+
+  /* Type */
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --app-bg: #101114;
+    --surface: #191a1f;
+    --inset: #23252c;
+    --border: #2a2d35;
+    --border-strong: #3a3e48;
+    --hover-bg: #24272e;
+    --input-bg: #1f2127;
+    --overlay-bg: rgba(0, 0, 0, 0.55);
+    /* Same shape, app palette: a chip one step off the surface, and the wash is
+       white rather than black because there is nothing darker to darken. */
+    --tile-bg: #23252c;
+    --tile-hover: rgba(255, 255, 255, 0.1);
+
+    --text: #e7e9ee;
+    --text-dim: #a3a9b5;
+    --text-muted: #737a87;
+
+    --accent: #5b8dfa;
+    --accent-soft: rgba(91, 141, 250, 0.16);
+    --selection-bg: rgba(91, 141, 250, 0.22);
+    --selection-fg: #cddfff;
+    --danger: #ef6f6f;
+    --danger-soft: rgba(239, 111, 111, 0.16);
+
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 8px 22px rgba(0, 0, 0, 0.55);
+    --shadow-raise: 0 12px 32px rgba(0, 0, 0, 0.62),
+      0 2px 6px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 24px 56px rgba(0, 0, 0, 0.6);
+  }
+}
