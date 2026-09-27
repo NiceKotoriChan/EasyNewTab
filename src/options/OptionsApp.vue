@@ -40,7 +40,9 @@ function onOpenInNewTabChange(event: Event): void {
 }
 
 function onShowOtherBookmarksChange(event: Event): void {
-  void update({ showOtherBookmarks: (event.target as HTMLInputElement).checked });
+  void update({
+    showOtherBookmarks: (event.target as HTMLInputElement).checked,
+  });
 }
 
 function setSidebarPosition(id: SidebarPosition): void {
@@ -90,7 +92,9 @@ function setSidebarPosition(id: SidebarPosition): void {
                   :key="option.id"
                   type="button"
                   class="seg-item"
-                  :class="{ 'is-active': settings.sidebarPosition === option.id }"
+                  :class="{
+                    'is-active': settings.sidebarPosition === option.id,
+                  }"
                   :aria-pressed="settings.sidebarPosition === option.id"
                   @click="setSidebarPosition(option.id)"
                 >
@@ -117,7 +121,7 @@ function setSidebarPosition(id: SidebarPosition): void {
 
           <div class="row">
             <div class="row-text">
-              <div class="row-label">Show “Other bookmarks”</div>
+              <div class="row-label">Show other bookmarks</div>
             </div>
             <div class="row-control">
               <input
