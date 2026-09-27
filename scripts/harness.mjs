@@ -26,7 +26,7 @@ const noop = () => {};
  * end-to-end: a preference flipped in the options page has to reach the
  * bookmark tree without another `getTree()` round-trip.
  */
-export function makeEvent() {
+function makeEvent() {
   const listeners = [];
   return {
     addListener: (fn) => listeners.push(fn),
@@ -116,12 +116,11 @@ export function setFailWrites(value) {
 /**
  * The `chrome.*` surface both scripts render against.
  *
- * Exported as one object rather than installed on import so the caller decides
- * when the global exists — and so a caller can still swap a single method out
- * mid-run and put it back (the settings check does exactly that, to prove a
- * read that resolves late cannot roll back a change that beat it).
+ * One object rather than a fresh one per call so a caller can swap a single
+ * method out mid-run and put it back — the settings check does exactly that, to
+ * prove a read that resolves late cannot roll back a change that beat it.
  */
-export const chromeApi = {
+const chromeApi = {
   storage: {
     sync: {
       get: async () => ({}),

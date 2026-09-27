@@ -26,10 +26,6 @@ interface MoveTarget {
   index?: number;
 }
 
-export function nodeKind(node: BookmarkNode): NodeKind {
-  return node.url ? "bookmark" : "folder";
-}
-
 export function isFolder(node: BookmarkNode): boolean {
   return !node.url;
 }
@@ -44,8 +40,8 @@ type RowActivation = "toggle" | "open";
  * click in the sidebar must not swap it for something else. Details are a
  * context-menu action instead.
  *
- * A node with an empty URL counts as a folder, the same way `nodeKind` and
- * `isFolder` treat it: that is what `getTree()` hands back for a folder row.
+ * A node with an empty URL counts as a folder, the same way `isFolder` treats
+ * it: that is what `getTree()` hands back for a folder row.
  */
 export function resolveRowActivation(node: BookmarkNode): RowActivation {
   return isFolder(node) ? "toggle" : "open";
@@ -283,20 +279,4 @@ export function computeMoveTarget(opts: {
 export function subtreeContains(ancestor: BookmarkNode, id: string): boolean {
   if (ancestor.id === id) return true;
   return (ancestor.children ?? []).some((child) => subtreeContains(child, id));
-}
-
-/** Breadcrumb of folder titles from the root down to (but excluding) `id`. */
-export function folderPath(
-  nodes: readonly BookmarkNode[],
-  id: string,
-  trail: string[] = [],
-): string[] | null {
-  for (const node of nodes) {
-    if (node.id === id) return trail;
-    if (node.children?.length) {
-      const found = folderPath(node.children, id, [...trail, node.title]);
-      if (found) return found;
-    }
-  }
-  return null;
 }

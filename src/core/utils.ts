@@ -51,12 +51,6 @@ export function getFaviconUrl(url: string | undefined, size = 32): string {
   );
 }
 
-/** Strip the scheme and trailing slash so rows show `example.com/x`. */
-export function prettyUrl(url: string | undefined): string {
-  if (!url) return "";
-  return url.replace(/^[a-z]+:\/\//i, "").replace(/\/$/, "");
-}
-
 /**
  * The one locale the interface is written in.
  *
