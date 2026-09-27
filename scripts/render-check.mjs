@@ -15,6 +15,8 @@ import { createRequire } from "node:module";
 import { readFile as readSource } from "node:fs/promises";
 import { createSSRApp, ref } from "vue";
 import { renderToString } from "@vue/server-renderer";
+import { MARK_SIZES, markPixel, quadness } from "./app-mark.mjs";
+import { markPng } from "./mark-png.mjs";
 import {
   TOP_SITES,
   createSsrServer,
@@ -22,6 +24,7 @@ import {
   setFailWrites,
   setTopSites,
 } from "./harness.mjs";
+import { readPng } from "./png-probe.mjs";
 
 /**
  * MDI's own dataset, so glyphs in the output can be compared against their
@@ -328,6 +331,50 @@ try {
       "utf8",
     );
     expectAbsent(source, 'd="', `${file} carries no hand-drawn path data`);
+  }
+
+  console.log("app icon");
+  // And the mark the extension itself wears is the one drawing here that is *not* MDI
+  // and not in the bundle at all: `app-mark.mjs` describes it, `npm run icons` draws it
+  // into `public/icons/`, and the manifest offers those files to the browser.
+  //
+  // Two questions, and they need different checks.
+  //
+  // *Are the committed files still this geometry?* Rendered again and compared byte for
+  // byte. Nothing weaker works: probing a few points of a shipped PNG cannot tell an
+  // icon drawn from the current numbers from one drawn from last month's numbers whose
+  // quads happen to cover the same pixels, which is exactly the drift that a retune
+  // without a rerun produces.
+  //
+  // *Does the drawing hold up as a mark?* That is the sampling below, and it is not
+  // redundant with the comparison — a renderer that filled the whole box with accent
+  // would match itself perfectly and fail every one of these. The sample points come
+  // from the geometry so that they follow a deliberate retune instead of pinning
+  // today's numbers.
+  const manifest = JSON.parse(
+    await readSource(new URL("../public/manifest.json", import.meta.url), "utf8"),
+  );
+  expectEqual(
+    JSON.stringify(manifest.icons),
+    JSON.stringify({ "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" }),
+    "the manifest offers the three sizes this file draws, and no other",
+  );
+  for (const { size, quads } of MARK_SIZES) {
+    const shipped = await readSource(new URL(`../public/icons/icon${size}.png`, import.meta.url));
+    expectEqual(shipped.equals(markPng(size, quads)), true, `icon${size} is the mark the geometry describes — rerun npm run icons if it is not`);
+    const png = readPng(shipped);
+    expectEqual(png.width === size && png.height === size, true, `icon${size} is ${size} square`);
+    expectEqual(png.at(0, 0)[3], 0, `icon${size}: the rounded corner is transparent, not a white notch`);
+    const first = quads[0];
+    const centre = png.at(
+      markPixel(first.x + first.size / 2, size),
+      markPixel(first.y + first.size / 2, size),
+    );
+    expectEqual(centre[3] === 255 && quadness(centre) > 0.85, true, `icon${size}: a quad centre carries the quad colour`);
+    const cross = png.at(size >> 1, size >> 1);
+    expectEqual(cross[3] === 255 && quadness(cross) < 0.35, true, `icon${size}: and the cross between the quads is still the tile — four tiles, not one block`);
+    const edge = png.at(size >> 1, 0);
+    expectEqual(edge[3] === 255 && quadness(edge) < 0.1, true, `icon${size}: the tile reaches the top edge, and it is the tile colour there`);
   }
 
   // The stores hydrate asynchronously on first use; let those microtasks land
@@ -748,7 +795,12 @@ try {
   // glyphs), so it gets swept too — one page's icons all coming from MDI would
   // not say much about the other's.
   assertGlyphsAreMdi(optionsHtml, "options");
-  expect(optionsHtml, "Settings", "the settings page has a header");
+  // No title bar. The page used to open on the app mark, the name and a "Settings" chip,
+  // and this is the assertion that replaces the one pinning them — pinning their absence,
+  // so that putting a header back is a decision rather than a drift. `class="head"` is
+  // exact rather than a substring, so the panel heads below are not what it matches.
+  expectAbsent(optionsHtml, 'class="head"', "the settings page has no title bar — it opens on the first section");
+  expectAbsent(optionsHtml, 'class="brand-mark"', "and no app mark sits above the controls");
   expect(optionsHtml, "Open bookmarks in a new tab", "general panel renders");
   // Both sections on one page, and the shortcut rows *rendered* rather than only
   // defined. Each row is read back through its own `kbd`.

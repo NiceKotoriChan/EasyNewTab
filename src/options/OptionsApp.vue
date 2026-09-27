@@ -3,14 +3,16 @@
  * Settings page. Since the new tab page has no gear button, this is the only place
  * preferences can be changed.
  *
- * Three sections, and the split is the point: **General** is the behaviour toggles,
- * **Layout** keeps the docking side to itself, and **Shortcuts** documents the keys. The
- * last two are each dropped on the axis that makes them useless — Layout while the window
- * is narrow (stacked, there is no column to dock into) and Shortcuts on a touch device (a
- * list of keys nothing there can press is worse than no list). General is always there. No
- * Save button (every control writes on change) and no prose. The engine picker is absent
- * on purpose: the row under the new tab page's search box is authoritative. `lastError`
- * drives the alert strip — without it a write that did not land looks like one that did.
+ * Three sections and nothing above them — no title bar, no name, no settings chip, so
+ * the page opens on the first control. The split is the point: **General** is the
+ * behaviour toggles, **Layout** keeps the docking side to itself, and **Shortcuts**
+ * documents the keys. The last two are each dropped on the axis that makes them useless
+ * — Layout while the window is narrow (stacked, there is no column to dock into) and
+ * Shortcuts on a touch device (a list of keys nothing there can press is worse than no
+ * list). General is always there. No Save button (every control writes on change) and no
+ * prose. The engine picker is absent on purpose: the row under the new tab page's search
+ * box is authoritative. `lastError` drives the alert strip — without it a write that did
+ * not land looks like one that did.
  */
 import Icon from "../components/ui/Icon.vue";
 import type { IconName } from "../components/ui/mdi-icons";
@@ -52,12 +54,6 @@ function setSidebarPosition(id: SidebarPosition): void {
 <template>
   <div class="options">
     <main class="content scroll">
-      <header class="head">
-        <div class="brand-mark" aria-hidden="true"><i /><i /><i /><i /></div>
-        <h1 class="brand-name">Easy New Tab</h1>
-        <p class="brand-sub">Settings</p>
-      </header>
-
       <div v-if="!ready" class="pane-empty">Loading…</div>
 
       <template v-else>
@@ -194,60 +190,8 @@ function setSidebarPosition(id: SidebarPosition): void {
   box-shadow: var(--shadow-sm);
 }
 
-/* Mark + name on the left, the page's own name pushed to the right as a chip —
-   a title bar rather than a stack of two lines. */
-.head {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid var(--border);
-}
-
-/* The mark is four tiles because the product is a tile grid. Drawn with CSS so
-   the MDI sweep on this page stays a check on the icon set only. */
-.brand-mark {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 2px;
-  flex: none;
-  width: 30px;
-  height: 30px;
-  padding: 5px;
-  background: var(--accent);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-xs);
-}
-
-.brand-mark i {
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 1.5px;
-}
-
-.brand-name {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 500;
-  letter-spacing: -0.2px;
-  color: var(--text);
-}
-
-.brand-sub {
-  margin: 0 0 0 auto;
-  padding: 2px 9px;
-  font-size: 10.5px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  color: var(--text-muted);
-  background: var(--inset);
-  border-radius: var(--radius-full);
-}
-
-.panel {
-  margin-top: 24px;
-}
-
-/* Two sections on one page; the mark and the space do the separating. */
+/* Space above a section does the separating — there is no title bar for the
+   first one to clear. */
 .panel + .panel {
   margin-top: 32px;
 }
@@ -292,7 +236,7 @@ function setSidebarPosition(id: SidebarPosition): void {
 .failed {
   display: flex;
   gap: 10px;
-  margin: 20px 0 0;
+  margin: 0 0 20px;
   padding: 12px 14px;
   background: var(--danger-soft);
   border-left: 3px solid var(--danger);
