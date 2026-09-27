@@ -14,17 +14,16 @@ import Icon from "../ui/Icon.vue";
 import { useHistory } from "@/composables/useHistory";
 import { useSettings } from "@/composables/useSettings";
 import { formatVisitStamp } from "@/core/history";
+import { openUrl } from "@/core/utils";
 
 const { groups, loading, failed, remove } = useHistory();
 const { settings } = useSettings();
 
+/** `url` is optional in the history API's own types, so both guards below are real. */
 function openItem(url?: string): void {
-  if (!url) return;
-  if (settings.value.openInNewTab !== false) void chrome.tabs.create({ url });
-  else void chrome.tabs.update({ url });
+  if (url) openUrl(url, settings.value.openInNewTab);
 }
 
-/** `HistoryItem.url` is optional in the API's own types, so the guard is real. */
 function removeItem(url?: string): void {
   if (!url) return;
   void remove(url);

@@ -17,6 +17,7 @@
  */
 import { useSettings } from "@/composables/useSettings";
 import { useTopSites } from "@/composables/useTopSites";
+import { openUrl } from "@/core/utils";
 import Favicon from "../ui/Favicon.vue";
 
 const { sites } = useTopSites();
@@ -27,8 +28,7 @@ function open(url: string, event: MouseEvent): void {
   // from the `href`. Only the plain click needs intercepting.
   if (event.metaKey || event.ctrlKey) return;
   event.preventDefault();
-  if (settings.value.openInNewTab !== false) void chrome.tabs.create({ url });
-  else void chrome.tabs.update({ url });
+  openUrl(url, settings.value.openInNewTab);
 }
 </script>
 

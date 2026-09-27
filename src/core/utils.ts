@@ -47,6 +47,16 @@ export function getFaviconUrl(url: string | undefined, size = 32): string {
   );
 }
 
+/** Open a page from a click, honouring the `openInNewTab` preference. Unset counts as
+ *  *on*: the preference arrives from storage after the first paint, and a click that
+ *  lands before it does should not navigate this page away from itself. Every place a
+ *  click can open a link goes through here, so the rule has one home and the tiles, the
+ *  tree and the history list cannot drift apart. */
+export function openUrl(url: string, openInNewTab: boolean | undefined): void {
+  if (openInNewTab === false) void chrome.tabs.update({ url });
+  else void chrome.tabs.create({ url });
+}
+
 /** The one locale the interface is written in. Every `Intl` call passes this explicitly
  *  rather than leaving the locale `undefined`: the extension ships no translations (no
  *  `_locales`, no `chrome.i18n`, no `default_locale`), so reading the browser's locale

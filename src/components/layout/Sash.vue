@@ -68,9 +68,24 @@ const hint = computed(() =>
   margin-right: calc(-1 * var(--gutter));
 }
 
-/* The line itself, with the gutter around it as the hit area. It runs the full
-   height so it reads as a divider rather than as a widget, and hovering recolours
-   it rather than growing it: the drag lands where the line already is. */
+/* What the pointer lands on. The handle's own width *is* the gutter, and the gutter is
+   0 — so the box is empty and the 1px line inside it is all there is to aim at. An 11px
+   strip centred on the line gives the drag back its target without costing a pixel of
+   layout: it is absolutely positioned inside a box that already exists, a press on it
+   lands on `.sash`, and that is what carries the drag. */
+.sash::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 11px;
+  transform: translateX(-50%);
+}
+
+/* The line itself. It runs the full height so it reads as a divider rather than as a
+   widget, and hovering recolours it rather than growing it: the drag lands where the
+   line already is. */
 .grip {
   position: absolute;
   top: 0;

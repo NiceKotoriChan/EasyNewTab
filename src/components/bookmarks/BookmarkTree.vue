@@ -4,8 +4,8 @@
  *
  * A left click is the whole gesture — `resolveRowActivation` decides whether it opens
  * a bookmark or folds a folder, and nothing is selected: the main area keeps showing
- * the search box whatever is clicked. A folder row has a context menu (new folder /
- * rename / delete), and so does the blank space below the tree, which is where a
+ * the search box whatever is clicked. A folder row has a context menu (New / Rename /
+ * Delete), and so does the blank space below the tree, which is where a
  * top-level folder comes from. A bookmark row has none — it opens on a click and
  * deletes from its own button.
  *
@@ -30,6 +30,7 @@ import { useSettings } from "@/composables/useSettings";
 import { BOOKMARK_TREE, type BookmarkTreeContext, type DropTarget } from "@/composables/bookmarkTree";
 import { emptyTreeMenu, folderMenu } from "@/core/menus";
 import { dragBlockedIds, isFolder as isFolderNode, resolveRowActivation, type BookmarkNode } from "@/core/bookmarks";
+import { openUrl } from "@/core/utils";
 import { watchTree, wireRow, type Cleanup, type RowHover, type RowRegistration } from "@/dnd/tree";
 
 const {
@@ -122,11 +123,7 @@ function activateNode(node: BookmarkNode): void {
 
 function openNode(node: BookmarkNode): void {
   if (!node.url) return;
-  if (settings.value.openInNewTab !== false) {
-    void chrome.tabs.create({ url: node.url });
-  } else {
-    void chrome.tabs.update({ url: node.url });
-  }
+  openUrl(node.url, settings.value.openInNewTab);
 }
 
 async function deleteNode(node: BookmarkNode): Promise<void> {

@@ -101,15 +101,16 @@ export function useSearch(): UseSearch {
     activeIndex.value = Math.max(-1, Math.min(suggestions.value.length - 1, next));
   }
 
-  function openUrl(url: string): void {
-    // Always a new tab — the new tab page itself must stay put.
+  function openNewTab(url: string): void {
+    // Always a new tab — the new tab page itself must stay put. The preference
+    // that governs the sidebar and the tiles deliberately does not reach here.
     void chrome.tabs.create({ url });
   }
 
   function run(text: string): void {
     const value = text.trim();
     if (!value) return;
-    openUrl(looksLikeUrl(value) ? normalizeUrl(value) : buildSearchUrl(engine.value, value));
+    openNewTab(looksLikeUrl(value) ? normalizeUrl(value) : buildSearchUrl(engine.value, value));
   }
 
   function commit(): void {
