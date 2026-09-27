@@ -10,6 +10,7 @@
     "typecheck": "vue-tsc --noEmit",
     "test": "node --test tests/",
     "render-check": "node scripts/render-check.mjs",
+    "preview:mobile": "npm run build && node scripts/mobile-preview.mjs",
     "check": "npm run typecheck && npm test && npm run render-check",
     "verify": "npm run check && npm run build"
   },
