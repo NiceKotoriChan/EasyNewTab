@@ -59,9 +59,7 @@ function setSidebarPosition(id: SidebarPosition): void {
   <div class="options">
     <main class="content scroll">
       <header class="head">
-        <div class="brand-mark" aria-hidden="true">
-          <i /><i /><i /><i />
-        </div>
+        <div class="brand-mark" aria-hidden="true"><i /><i /><i /><i /></div>
         <h1 class="brand-name">Easy New Tab</h1>
         <p class="brand-sub">Settings</p>
       </header>
@@ -132,7 +130,7 @@ function setSidebarPosition(id: SidebarPosition): void {
 
             <div class="row">
               <div class="row-text">
-                <div class="row-label">Show “Other bookmarks”</div>
+                <div class="row-label">Show other bookmarks</div>
               </div>
               <div class="row-control">
                 <input
