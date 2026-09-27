@@ -141,4 +141,14 @@ function pick(action: string): void {
   margin: 5px 6px;
   background: var(--border);
 }
+
+/* A finger is not a cursor. A 30px row is a comfortable click and a fiddly tap,
+   and a menu reached by a long press is the one place on the page whose entire
+   purpose is to be hit accurately. */
+@media (pointer: coarse) {
+  .ctx-item {
+    padding: 10px 12px;
+    font-size: 13.5px;
+  }
+}
 </style>

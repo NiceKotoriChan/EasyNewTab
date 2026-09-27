@@ -2,11 +2,16 @@
 /**
  * Draggable divider: invisible in the gutter, a 2px accent bar on hover.
  *
- * Rendered unconditionally — expanded *and* collapsed. Collapsing the sidebar is
- * the same drag as resizing it, so the element under the pointer has to outlive
- * the state change it causes (see `useSidebar.startResize`). Collapsed, the
- * sidebar hides with `v-show` and this handle ends up flush against the window
- * edge, which is where the hand already is.
+ * Rendered unconditionally *in the side-by-side layout* — expanded and
+ * collapsed both. Collapsing the sidebar is the same drag as resizing it, so the
+ * element under the pointer has to outlive the state change it causes (see
+ * `useSidebar.startResize`). Collapsed, the sidebar hides with `v-show` and this
+ * handle ends up flush against the window edge, which is where the hand already
+ * is.
+ *
+ * The shell does not render it at all once the two sheets are stacked: there is
+ * no column to drag across, and no collapsed state for it to bring the sidebar
+ * back from.
  *
  * The negative margin that puts it there depends on `position`, and so does the
  * hint text: the divider cancels the *sidebar's* gutter, which is on the

@@ -7,6 +7,13 @@
  * main area is never swapped out from under a click; the detail editor lives
  * behind the row's context menu.
  *
+ * The menu has two ways in, because a touchscreen has no right button: a
+ * right-click, and a long press on a row or on the blank space below the tree
+ * (which is where a top-level folder comes from). One press listener covers the
+ * whole tree rather than one per row — the rows are recursive and there can be
+ * hundreds of them, and a finger does not reliably stay on the row it started
+ * on.
+ *
  * The search box appears above the tree only when asked for (`p`, then Esc or
  * its ×), because a filter bar that is always there costs a row of the panel
  * forever. It filters with `searchBookmarks`, which prunes the tree rather than
@@ -21,10 +28,13 @@ import BookmarkRow from "./BookmarkNode.vue";
 import ConfirmDialog from "../ui/ConfirmDialog.vue";
 import Icon from "../ui/Icon.vue";
 import { useBookmarks } from "@/composables/useBookmarks";
-import { useContextMenu, type MenuItem } from "@/composables/useContextMenu";
+import { useContextMenu } from "@/composables/useContextMenu";
+import { useLongPress } from "@/composables/useLongPress";
+import { usePlatform } from "@/composables/usePlatform";
 import { useSelection } from "@/composables/useSelection";
 import { useSettings } from "@/composables/useSettings";
 import { BOOKMARK_TREE, type BookmarkTreeContext, type DropTarget } from "@/composables/bookmarkTree";
+import { bookmarkMenu, emptyTreeMenu } from "@/core/menus";
 import { dragBlockedIds, isFolder as isFolderNode, resolveRowActivation, type BookmarkNode } from "@/core/bookmarks";
 import { watchTree, wireRow, type Cleanup, type RowHover, type RowRegistration } from "@/dnd/tree";
 
@@ -49,6 +59,7 @@ const {
 } = useBookmarks();
 const { selection, select, clear } = useSelection();
 const { settings } = useSettings();
+const { isTouch } = usePlatform();
 const { open: openMenu } = useContextMenu();
 
 const container = ref<HTMLElement | null>(null);
@@ -152,28 +163,64 @@ async function deleteNode(node: BookmarkNode): Promise<void> {
 
 // --- Context menu ----------------------------------------------------
 
-function nodeContextMenu(event: MouseEvent, node: BookmarkNode): void {
-  // Stop here so an unhandled right-click on a bookmark can't also open the
-  // empty-area menu underneath it.
-  event.stopPropagation();
-
-  // Leaf bookmarks used to get no menu at all: renaming or editing one meant
-  // going through the detail editor, which a left click can no longer reach.
-  // They get the same menu now, minus the folder-only command.
-  const folder = isFolderNode(node);
-  const items: MenuItem[] = [
-    folder
-      ? { label: "New folder", action: "new-folder" }
-      : { label: "Open", action: "open" },
-    // The only action here that a click cannot do: it is where the URL and
-    // title are edited.
-    { label: "Edit details", action: "details" },
-    { label: "Rename", action: "rename" },
-    { label: "Delete", action: "delete", danger: true, separatorBefore: true },
-  ];
-
-  openMenu(event, items, (action) => void handleNodeAction(action, node));
+/**
+ * A row's menu, anchored where the gesture happened.
+ *
+ * Coordinates rather than an event, because the two ways in are a right-click
+ * and a long press and only the first of them has a `MouseEvent` to read them
+ * from. The list itself is data (`core/menus.ts`) so that what a touchscreen is
+ * and is not offered can be pinned without a browser.
+ */
+function nodeContextMenu(x: number, y: number, node: BookmarkNode): void {
+  openMenu(
+    x,
+    y,
+    bookmarkMenu(
+      { folder: isFolderNode(node) },
+      { showDetails: !isTouch.value },
+    ),
+    (action) => void handleNodeAction(action, node),
+  );
 }
+
+/** The blank space under the tree — where a top-level folder is made. */
+function blankMenu(x: number, y: number): void {
+  const parentId = rootFolderId.value;
+  if (!parentId) return;
+
+  openMenu(x, y, emptyTreeMenu(), () => {
+    void (async () => {
+      const name = prompt("Folder name:");
+      if (!name) return;
+      await createFolder(parentId, name);
+    })();
+  });
+}
+
+function onBlankContextMenu(event: MouseEvent): void {
+  // Row menus stop the event themselves; a right-click landing in the gap
+  // between two rows is still blank space and does open this one.
+  if ((event.target as HTMLElement).closest(".row")) return;
+  blankMenu(event.clientX, event.clientY);
+}
+
+/**
+ * The touch way into both menus above.
+ *
+ * One listener for the whole tree, and the point the finger stopped at is asked
+ * what it was over: a row answers with its `data-node-id` — the same attribute
+ * the drop maths already queries the rows for — and anything else is the blank
+ * space.
+ */
+const longPress = useLongPress((x, y) => {
+  const row = document
+    .elementFromPoint(x, y)
+    ?.closest<HTMLElement>("[data-node-id]");
+  const id = row?.dataset.nodeId;
+  const node = id ? findNode(id) : undefined;
+  if (node) nodeContextMenu(x, y, node);
+  else blankMenu(x, y);
+});
 
 async function handleNodeAction(action: string, node: BookmarkNode): Promise<void> {
   switch (action) {
@@ -202,21 +249,6 @@ async function handleNodeAction(action: string, node: BookmarkNode): Promise<voi
       pendingDelete.value = node;
       break;
   }
-}
-
-function onEmptyContextMenu(event: MouseEvent): void {
-  const target = event.target as HTMLElement;
-  if (target.closest(".row")) return; // rows handle their own
-  const parentId = rootFolderId.value;
-  if (!parentId) return;
-
-  openMenu(event, [{ label: "New folder", action: "new-folder" }], () => {
-    void (async () => {
-      const name = prompt("Folder name:");
-      if (!name) return;
-      await createFolder(parentId, name);
-    })();
-  });
 }
 
 // --- Drag & drop -----------------------------------------------------
@@ -339,7 +371,12 @@ watch(tree, () => {
       </button>
     </div>
 
-    <div ref="container" class="tree scroll" @contextmenu="onEmptyContextMenu">
+    <div
+      ref="container"
+      class="tree scroll"
+      @contextmenu="onBlankContextMenu"
+      v-on="longPress"
+    >
       <div v-if="loading && tree.length === 0" class="pane-empty">Loading…</div>
       <div v-else-if="failed" class="pane-empty is-error">
         Failed to load bookmarks

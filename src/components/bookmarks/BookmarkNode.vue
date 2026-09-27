@@ -104,7 +104,9 @@ onBeforeUnmount(() => {
       :data-action="activation"
       :title="props.node.url || props.node.title"
       @click="ctx.activate(props.node)"
-      @contextmenu="ctx.nodeContextMenu($event, props.node)"
+      @contextmenu.stop="
+        ctx.nodeContextMenu($event.clientX, $event.clientY, props.node)
+      "
     >
       <button
         v-if="isFolder"

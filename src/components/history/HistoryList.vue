@@ -4,7 +4,8 @@
  *
  * One click opens an entry in a new tab; nothing is selected, so the search box
  * in the main area is never replaced by a click. The read-only detail view is
- * behind the row's context menu.
+ * behind the row's context menu — which a touchscreen reaches by long press, the
+ * same way every other menu in the app is reached there.
  *
  * The list is unbounded — everything in the profile is requested and every row
  * rendered, which stays cheap because off-screen rows opt out of layout and paint
@@ -17,12 +18,16 @@ import ConfirmDialog from "../ui/ConfirmDialog.vue";
 import { useHistory } from "@/composables/useHistory";
 import { useSelection } from "@/composables/useSelection";
 import { useContextMenu } from "@/composables/useContextMenu";
+import { useLongPress } from "@/composables/useLongPress";
+import { usePlatform } from "@/composables/usePlatform";
 import { useSettings } from "@/composables/useSettings";
 import { formatVisitStamp } from "@/core/history";
+import { emptyHistoryMenu, historyMenu } from "@/core/menus";
 
 const { groups, loading, failed, remove, clearAll } = useHistory();
 const { selection, select, clear } = useSelection();
 const { open: openMenu } = useContextMenu();
+const { isTouch } = usePlatform();
 const { settings } = useSettings();
 
 const confirmClear = ref(false);
@@ -38,20 +43,12 @@ function openItem(url?: string): void {
   else void chrome.tabs.update({ url });
 }
 
-function itemContextMenu(event: MouseEvent, url?: string): void {
+function itemContextMenu(x: number, y: number, url?: string): void {
   if (!url) return;
   openMenu(
-    event,
-    [
-      { label: "Open", action: "open" },
-      { label: "Details", action: "details" },
-      {
-        label: "Remove from history",
-        action: "remove",
-        danger: true,
-        separatorBefore: true,
-      },
-    ],
+    x,
+    y,
+    historyMenu({ showDetails: !isTouch.value }),
     (action) => {
       if (action === "open") openItem(url);
       // The main area is the search box by default; details are asked for
@@ -65,15 +62,26 @@ function itemContextMenu(event: MouseEvent, url?: string): void {
   );
 }
 
-function blankContextMenu(event: MouseEvent): void {
-  openMenu(
-    event,
-    [{ label: "Clear all history…", action: "clear", danger: true }],
-    () => {
-      confirmClear.value = true;
-    },
-  );
+/** The space between and below the rows — rows stop the event themselves. */
+function blankContextMenu(x: number, y: number): void {
+  openMenu(x, y, emptyHistoryMenu(), () => {
+    confirmClear.value = true;
+  });
 }
+
+/**
+ * The touch way into both menus.
+ *
+ * One press listener for the whole list rather than one per entry: the list can
+ * hold thousands of rows, and the point the finger stopped at is enough to say
+ * which of them — or none of them — was under it.
+ */
+const longPress = useLongPress((x, y) => {
+  const row = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-url]");
+  const url = row?.dataset.url;
+  if (url) itemContextMenu(x, y, url);
+  else blankContextMenu(x, y);
+});
 
 function onListClick(event: MouseEvent): void {
   if (!(event.target as HTMLElement).closest(".row")) clear();
@@ -88,7 +96,12 @@ async function confirmClearAll(): Promise<void> {
 
 <template>
   <div class="history-panel">
-    <div class="list scroll" @contextmenu="blankContextMenu" @click="onListClick">
+    <div
+      class="list scroll"
+      @contextmenu="blankContextMenu($event.clientX, $event.clientY)"
+      @click="onListClick"
+      v-on="longPress"
+    >
       <div v-if="loading && groups.length === 0" class="pane-empty">
         Loading…
       </div>
@@ -107,8 +120,11 @@ async function confirmClearAll(): Promise<void> {
           class="row"
           :class="{ 'is-selected': item.url === selectedUrl }"
           :title="item.url"
+          :data-url="item.url"
           @click="openItem(item.url)"
-          @contextmenu="itemContextMenu($event, item.url)"
+          @contextmenu.stop="
+            itemContextMenu($event.clientX, $event.clientY, item.url)
+          "
         >
           <Favicon :url="item.url" :size="14" />
           <span class="label">{{ item.title || item.url }}</span>

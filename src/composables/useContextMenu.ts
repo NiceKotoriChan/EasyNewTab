@@ -5,19 +5,15 @@
  * global document listeners per module (bookmarks, history, background), which
  * is why re-renders kept stacking duplicate listeners. Here there is exactly
  * one menu instance, rendered by App.vue, and one set of global listeners.
+ *
+ * `open` takes an anchor rather than a `MouseEvent`, because there are two ways
+ * in: a right-click, whose event carries the coordinates, and a touch long press
+ * (`useLongPress`), which has no mouse event to hand over. Neither has to
+ * suppress the browser's own menu here either — the shell swallows that once,
+ * for the whole document.
  */
-
 import { ref, type Ref } from "vue";
-
-export interface MenuItem {
-  label: string;
-  /** Passed back to the `onPick` callback of the opening call. */
-  action: string;
-  danger?: boolean;
-  disabled?: boolean;
-  /** Draw a divider above this item. */
-  separatorBefore?: boolean;
-}
+import type { MenuItem } from "@/core/menus";
 
 interface MenuState {
   x: number;
@@ -31,7 +27,8 @@ const menu = ref<MenuState | null>(null);
 interface UseContextMenu {
   menu: Ref<MenuState | null>;
   open: (
-    event: MouseEvent,
+    x: number,
+    y: number,
     items: MenuItem[],
     onPick: (action: string) => void,
   ) => void;
@@ -40,14 +37,13 @@ interface UseContextMenu {
 
 export function useContextMenu(): UseContextMenu {
   function open(
-    event: MouseEvent,
+    x: number,
+    y: number,
     items: MenuItem[],
     onPick: (action: string) => void,
   ): void {
-    event.preventDefault();
-    event.stopPropagation();
     if (items.length === 0) return;
-    menu.value = { x: event.clientX, y: event.clientY, items, onPick };
+    menu.value = { x, y, items, onPick };
   }
 
   function close(): void {

@@ -109,3 +109,22 @@
     --shadow-lg: 0 24px 56px rgba(0, 0, 0, 0.6);
   }
 }
+
+/* ============================================================
+   Pointer metrics.
+
+   A finger wants a bigger target than a cursor does, and the list rows are the
+   densest tap targets in the app. Asking about the pointer rather than the
+   window is the point: a narrow desktop window keeps its mouse and its 28px
+   rows, and a phone gets rows it can hit — which also leaves the long press more
+   room before its 10px of tolerance is spent crossing into the next row.
+
+   The two overlays are teleported to `body` and so do not inherit from any
+   component's subtree, which is why this lives here rather than beside the shell
+   that renders them.
+   ============================================================ */
+@media (pointer: coarse) {
+  :root {
+    --row-h: 38px;
+  }
+}

@@ -12,10 +12,16 @@
  */
 
 import { createRequire } from "node:module";
-import { readFile } from "node:fs/promises";
-import { createServer } from "vite";
+import { readFile as readSource } from "node:fs/promises";
 import { createSSRApp, ref } from "vue";
 import { renderToString } from "@vue/server-renderer";
+import {
+  TOP_SITES,
+  createSsrServer,
+  installChromeStub,
+  setFailWrites,
+  setTopSites,
+} from "./harness.mjs";
 
 /**
  * MDI's own dataset, so glyphs in the output can be compared against their
@@ -34,143 +40,11 @@ for (const glyph of Object.values(mdi.icons)) {
   for (const match of glyph.body.matchAll(/d="([^"]*)"/g)) MDI_PATHS.add(match[1]);
 }
 
-// ---------------------------------------------------------------- chrome stub
-const noop = () => {};
-
-/**
- * Event stubs that keep their listeners, so a test can *fire* a change instead
- * of only proving that a listener could be attached. The settings store is the
- * one subscriber whose reaction is worth exercising end-to-end: a preference
- * flipped in the options page has to reach the bookmark tree without another
- * `getTree()` round-trip.
- */
-const makeEvent = () => {
-  const listeners = [];
-  return {
-    addListener: (fn) => listeners.push(fn),
-    removeListener: (fn) => {
-      const i = listeners.indexOf(fn);
-      if (i >= 0) listeners.splice(i, 1);
-    },
-    fire: (...args) => listeners.forEach((fn) => fn(...args)),
-  };
-};
-
-const BOOKMARK_TREE = [
-  {
-    id: "0",
-    title: "",
-    children: [
-      {
-        id: "1",
-        parentId: "0",
-        title: "Bookmarks bar",
-        children: [
-          { id: "b1", parentId: "1", title: "GitHub", url: "https://github.com" },
-          {
-            id: "f1",
-            parentId: "1",
-            title: "Dev",
-            children: [
-              {
-                id: "b2",
-                parentId: "f1",
-                title: "Vue",
-                url: "https://vuejs.org",
-              },
-            ],
-          },
-        ],
-      },
-      { id: "2", parentId: "0", title: "Other bookmarks", children: [] },
-    ],
-  },
-];
-
-/**
- * What the top-sites stub answers with, and deliberately more than the row can
- * show: twelve entries carrying a repeat host, a `chrome://` page, a malformed
- * URL, an entry with no title, and one site too many for the cap. Every rule
- * `selectTopSites` applies has an entry here that trips it, so the row the
- * render check sees is the row a real profile would produce.
- */
-const TOP_SITES = [
-  { url: "https://github.com/", title: "GitHub" },
-  { url: "https://github.com/explore", title: "Explore GitHub" },
-  { url: "chrome://bookmarks", title: "Bookmark Manager" },
-  { url: "https://mail.google.com/mail/u/0/", title: "   " },
-  { url: "https://news.ycombinator.com/", title: "Hacker News" },
-  { url: "https://vuejs.org/", title: "Vue" },
-  { url: "https://developer.mozilla.org/en-US/", title: "MDN Web Docs" },
-  { url: "https://stackoverflow.com/", title: "Stack Overflow" },
-  { url: "https://www.zhihu.com/", title: "知乎" },
-  { url: "https://bilibili.com/", title: "bilibili" },
-  { url: "not-a-url", title: "Nope" },
-  { url: "https://rust-lang.org/", title: "Rust" },
-];
-
-/** Mutable: the last pass answers with nothing, to see what the row does then. */
-let topSitesFixture = TOP_SITES;
-
-/**
- * Flip to make the next `storage.sync.set` fail. Storage writes really do fail
- * — `sync` has write quotas, and a write from a page whose extension has been
- * reloaded throws — so the "did not land" path is exercised rather than assumed.
- */
-let failWrites = false;
-
-globalThis.chrome = {
-  storage: {
-    sync: {
-      get: async () => ({}),
-      set: async () => {
-        if (failWrites) throw new Error("QUOTA_BYTES quota exceeded");
-      },
-    },
-    local: { get: async () => ({}), set: async () => {} },
-    session: { get: async () => ({}), set: async () => {} },
-    onChanged: makeEvent(),
-  },
-  runtime: {
-    getURL: (path) => `chrome-extension://stub/${path}`,
-    openOptionsPage: noop,
-  },
-  bookmarks: {
-    getTree: async () => BOOKMARK_TREE,
-    get: async () => [],
-    getSubTree: async () => [],
-    getChildren: async () => [],
-    create: async () => ({}),
-    update: async () => ({}),
-    move: async () => ({}),
-    remove: async () => {},
-    removeTree: async () => {},
-    onCreated: makeEvent(),
-    onRemoved: makeEvent(),
-    onChanged: makeEvent(),
-    onMoved: makeEvent(),
-    onChildrenReordered: makeEvent(),
-    onImportEnded: makeEvent(),
-  },
-  history: {
-    search: async () => [
-      {
-        id: "h1",
-        url: "https://example.com/",
-        title: "Example",
-        lastVisitTime: Date.now(),
-        visitCount: 4,
-        typedCount: 1,
-      },
-    ],
-    deleteUrl: async () => {},
-    deleteAll: async () => {},
-    onVisited: makeEvent(),
-    onVisitRemoved: makeEvent(),
-  },
-  tabs: { create: noop, update: noop },
-  topSites: { get: async () => topSitesFixture },
-};
+// ------------------------------------------------- chrome + vite harness
+// The stub, its fixtures and the SSR server live in `harness.mjs` because
+// `mobile-preview.mjs` renders these same components against the same stub.
+// Two copies of a fixture set are two fixture sets that disagree.
+installChromeStub();
 
 // ---------------------------------------------------------------- checks
 const failures = [];
@@ -342,11 +216,25 @@ function settingsRows(html) {
   return { rows, controls, labels };
 }
 
-const server = await createServer({
-  server: { middlewareMode: true },
-  appType: "custom",
-  logLevel: "error",
-});
+/**
+ * The rows of one settings section, counted inside that section's own slice of
+ * the document. `null` when the section is not there, so a missing one fails an
+ * assertion rather than quietly returning zero rows.
+ *
+ * The slice runs from the section's title to the next section's header. It is
+ * the only way to say "this row is in General and not in Layout", which is the
+ * whole content of the split — a document-wide count could not tell the two
+ * apart.
+ */
+function sectionRows(html, title) {
+  const start = html.indexOf(`>${title}<`);
+  if (start === -1) return null;
+  const next = html.indexOf('class="panel-head"', start);
+  const body = html.slice(start, next === -1 ? undefined : next);
+  return { rows: (body.match(/class="row"/g) ?? []).length };
+}
+
+const server = await createSsrServer();
 
 try {
   // Every page load begins with a `storage.sync.get` in flight. Anything that
@@ -435,7 +323,7 @@ try {
   // And the icon layer must hold no drawing of its own: a `d="` literal in
   // either file below means a glyph is being hand-made again.
   for (const file of ["Icon.vue", "mdi-icons.ts"]) {
-    const source = await readFile(
+    const source = await readSource(
       new URL(`../src/components/ui/${file}`, import.meta.url),
       "utf8",
     );
@@ -475,14 +363,14 @@ try {
   // name; a hex literal at either one is how they drifted apart the first time
   // (two files, two copies of a colour that was not the shipped one). CSS is
   // invisible to an SSR render, so the sources are what has to be read.
-  const tokensCss = await readFile(
+  const tokensCss = await readSource(
     new URL("../src/styles/tokens.css", import.meta.url),
     "utf8",
   );
   expectEqual((tokensCss.match(/--icon-folder:/g) ?? []).length, 1, "the folder tint is defined once, as a token");
   expect(tokensCss, "--icon-folder: var(--accent)", "and it aliases the app's accent rather than inventing a second blue");
   for (const file of ["BookmarkNode.vue", "BookmarkDetail.vue"]) {
-    const source = await readFile(
+    const source = await readSource(
       new URL(`../src/components/bookmarks/${file}`, import.meta.url),
       "utf8",
     );
@@ -580,6 +468,55 @@ try {
   await new Promise((resolve) => setTimeout(resolve, 0));
   const dockedLeft = await renderToString(createSSRApp(App));
   expectAbsent(dockedLeft, "is-right", "and setting it back un-mirrors the shell");
+
+  console.log("stacked shell");
+  // There is no viewport in this process, so the two `matchMedia` answers are
+  // driven directly — the same way `collapsed` and `searchQuery` are driven
+  // above. What is being pinned is what the shell does once the answer is
+  // "narrow", not how the answer is arrived at. (`usePlatform` reads the queries
+  // once, during the first setup, and both are `false` under SSR, which is why
+  // every pass above this one is the desktop shell.)
+  const { usePlatform } = await server.ssrLoadModule(
+    "/src/composables/usePlatform.ts",
+  );
+  const { isCompact, isTouch } = usePlatform();
+
+  isCompact.value = true;
+  const stacked = await renderToString(createSSRApp(App));
+  expect(stacked, "is-stacked", "narrow: the two sheets become a column");
+  // The divider is not merely hidden — the shell stops rendering it, because
+  // there is no column to drag across and no collapsed state for it to come back
+  // from. `v-show` would have left it in the DOM, which is what the collapsed
+  // pass above relies on for the *other* layout.
+  expectAbsent(stacked, 'class="sash"', "narrow: the divider is gone, not hidden");
+  expectAbsent(stacked, 'aria-label="Resize sidebar"', "narrow: nothing offers to resize a column that is no longer there");
+  expect(stacked, 'class="sidebar"', "narrow: the sidebar is still the sidebar, just the lower of the two sheets");
+  expectAbsent(stacked, "is-right", "narrow: docking left and right is meaningless while stacked, and says nothing");
+  // Both halves of the pane go: the clock and the most-visited row are ambient
+  // information, and the card is the search box and its engine row.
+  expectAbsent(stacked, 'class="date"', "narrow: the search card drops the clock");
+  expectAbsent(stacked, 'aria-label="Most visited sites"', "narrow: and the most-visited row with it");
+  expect(stacked, "search-field", "narrow: what is left in the card is the search box");
+  expect(stacked, "is-large", "narrow: still the hero variant");
+  expect(stacked, "DuckDuckGo", "narrow: and the engine row under it");
+  // The visual order says "search card on top" and it is CSS, which an SSR
+  // render cannot show: the DOM order is unchanged in both layouts and the shell
+  // reverses the column. So the source is what has to be read.
+  const shellSource = await readSource("src/newtab/App.vue", "utf8");
+  expect(shellSource, "flex-direction: column-reverse", "narrow: the column is reversed, so the search card lands on top with the DOM order untouched");
+
+  // `collapsed` is a desktop measurement and nothing in a stacked shell can set
+  // it either way, so a leftover `true` must not hide the lower sheet — there
+  // would be no way to bring it back.
+  collapsed.value = true;
+  const stackedCollapsed = await renderToString(createSSRApp(App));
+  expectAbsent(stackedCollapsed, "display:none", "narrow: a sidebar the desktop had collapsed is shown again");
+  collapsed.value = false;
+  isCompact.value = false;
+
+  const wideAgain = await renderToString(createSSRApp(App));
+  expectAbsent(wideAgain, "is-stacked", "and widening the window puts the row back");
+  expect(wideAgain, 'aria-label="Resize sidebar"', "divider and all");
 
   console.log("click contract");
   // A left click is the whole gesture and it is NOT selection — the sidebar
@@ -765,14 +702,14 @@ try {
   const { useTopSites } = await server.ssrLoadModule(
     "/src/composables/useTopSites.ts",
   );
-  topSitesFixture = [];
+  setTopSites([]);
   await useTopSites().reload();
   const noSites = await renderToString(createSSRApp(WelcomePane));
   expectAbsent(noSites, 'aria-label="Most visited sites"', "no list, no row");
   expectAbsent(noSites, 'class="site"', "and no empty grid left in its place");
   expect(noSites, "search-field", "while the block around it is untouched");
 
-  topSitesFixture = TOP_SITES;
+  setTopSites(TOP_SITES);
   await useTopSites().reload();
   expect(await renderToString(createSSRApp(WelcomePane)), 'aria-label="Most visited sites"', "and the row comes back when the list does");
 
@@ -792,7 +729,10 @@ try {
   expect(optionsHtml, ">General<", "the General section is on the page itself");
   expect(optionsHtml, ">Shortcuts<", "and so is the Shortcuts section — the page no longer pages");
   expect(optionsHtml, "Focus the search bar", "a shortcut row renders its description, not just its key");
-  expect(optionsHtml, "Other bookmarks", "the Other bookmarks visibility toggle is offered");
+  // The whole phrase is what is pinned, not the folder's name: the label names
+  // Chrome's own "Other bookmarks" folder, and it is the verb that makes the row
+  // read as a switch rather than as a heading.
+  expect(optionsHtml, "Show other bookmarks", "the Other bookmarks visibility toggle is offered");
   expectAbsent(optionsHtml, "History items", "the history-count slider is gone (history is unbounded now)");
   // The General panel is controls only. Both of these were static `row`s with no
   // control, sitting under the last checkbox: a paragraph saying history has no
@@ -803,7 +743,7 @@ try {
   expectAbsent(optionsHtml, "Extension options", "the settings page no longer explains itself instead of holding settings");
   expectAbsent(optionsHtml, "no item cap to configure", "and not by prose that restates the absence of a control either");
   const rows = settingsRows(optionsHtml);
-  expectEqual(rows.rows > 0 && rows.controls === rows.rows, true, "every General row carries a control — the panel has no prose-only rows");
+  expectEqual(rows.rows > 0 && rows.controls === rows.rows, true, "every settings row carries a control — no panel has prose-only rows");
   expectEqual(rows.labels === rows.rows, true, "and each row is exactly one name — nothing has grown a second line");
   // The explanatory paragraph under each row is the same species as those two
   // prose-only rows: it described the setting to someone already looking at its
@@ -815,6 +755,15 @@ try {
   expect(optionsHtml, 'aria-pressed="true"', "and one of the two sides is marked as current");
   expectAbsent(optionsHtml, "Default engine", "the engine picker is gone from settings — the engine row on the new tab page owns it");
   expectAbsent(optionsHtml, "Bing", "and the grid of engines went with that section");
+
+  // The docking side has a section of its own, and the split is the point: it is
+  // the one preference about the shell rather than about bookmarks, and the one
+  // that has to survive onto a touchscreen. Counted per section, because a
+  // document-wide count would not notice a row moving between them — which is
+  // exactly the change being pinned here.
+  expect(optionsHtml, ">Layout<", "the docking side is a section, not a third row under General");
+  expectEqual(sectionRows(optionsHtml, "General")?.rows, 2, "General is the two behaviour toggles and nothing else");
+  expectEqual(sectionRows(optionsHtml, "Layout")?.rows, 1, "and Layout is the docking side alone");
 
   // The rows now render into the page above, but the cross-check still needs the
   // module: a table of shortcuts is prose *about* behaviour, and prose is what
@@ -862,7 +811,6 @@ try {
   // browser here to press the key in. What it can still catch is the regression
   // that matters: the emitted `escape` once had no listener at all, which left
   // every bare-key shortcut unreachable on a page whose search box autofocuses.
-  const { readFile: readSource } = await import("node:fs/promises");
   const paneSource = await readSource("src/components/welcome/WelcomePane.vue", "utf8");
   const fieldSource = await readSource("src/components/SearchField.vue", "utf8");
   expect(paneSource, '@escape="leaveField"', "the welcome pane listens for the search field's Escape");
@@ -880,15 +828,83 @@ try {
   await new Promise((resolve) => setTimeout(resolve, 0));
   expectEqual(activeDockSide(await renderToString(createSSRApp(OptionsApp))), "right", "and follows that change when it is made from another tab");
 
+  console.log("touch");
+  // The other axis. `isCompact` and `isTouch` answer different questions — how
+  // much room there is, and what the input can do — and this section sets only
+  // the second, because the case where they come apart is the one worth pinning:
+  // a narrow desktop window still has a keyboard, and must keep the list.
+  isTouch.value = true;
+  const touchOptions = await renderToString(createSSRApp(OptionsApp));
+  expectAbsent(touchOptions, ">Shortcuts<", "touch: the shortcut list is not offered — there is no keyboard to press the keys on");
+  expectAbsent(touchOptions, "<kbd", "touch: and no keycap is left behind in its place");
+  expect(touchOptions, 'aria-label="Sidebar position"', "touch: the docking side is still a setting — it is about the layout, not the input");
+  expect(touchOptions, ">Layout<", "touch: and still a section of its own");
+  expect(touchOptions, "Open bookmarks in a new tab", "touch: the behaviour toggles are untouched");
+  expect(touchOptions, "Show other bookmarks", "touch: both of them");
+
+  isCompact.value = true;
+  isTouch.value = false;
+  expect(
+    await renderToString(createSSRApp(OptionsApp)),
+    ">Shortcuts<",
+    "narrow but not touch: the list stays — a narrow window still has a keyboard",
+  );
+  isCompact.value = false;
+
+  console.log("long press");
+  // The gesture has no markup to look at, and there is no DOM in this process to
+  // fire a touch at. What can be pinned is the half of it that lives here — which
+  // pointers arm it (`tests/gestures.test.ts` covers the rest of the decision) —
+  // plus the one thing the two ways in have to agree on: that a touchscreen is
+  // offered the same menu minus the entry it has nowhere to put.
+  const { isLongPressPointer } = await server.ssrLoadModule(
+    "/src/core/gestures.ts",
+  );
+  expectEqual(
+    isLongPressPointer("touch"),
+    true,
+    "a long press is armed for a finger",
+  );
+  expectEqual(
+    isLongPressPointer("mouse"),
+    false,
+    "and for nothing else — the tree's drag is a mouse gesture and would lose that press",
+  );
+
+  const { bookmarkMenu, historyMenu } = await server.ssrLoadModule(
+    "/src/core/menus.ts",
+  );
+  const actions = (items) => items.map((item) => item.action).join(",");
+  expectEqual(
+    actions(historyMenu({ showDetails: false })),
+    "open,remove",
+    "touch: a history row's menu leaves the detail entry out rather than disabling it",
+  );
+  expectEqual(
+    actions(bookmarkMenu({ folder: false }, { showDetails: false })),
+    "open,rename,delete",
+    "touch: and so does a bookmark's",
+  );
+
+  for (const file of [
+    "src/components/bookmarks/BookmarkTree.vue",
+    "src/components/history/HistoryList.vue",
+  ]) {
+    const name = file.split("/").pop();
+    const source = await readSource(file, "utf8");
+    expect(source, "useLongPress(", `${name} reaches its menus by long press as well as by right-click`);
+    expect(source, "@contextmenu", `${name} keeps the right-click the long press stands in for`);
+  }
+
   console.log("a write that did not land");
   // The other half of "the setting doesn't work": the write fails, the control
   // keeps showing the new value, storage keeps the old one, and every other
   // page keeps the old one too. Rolling back is what makes it visible.
   const realConsoleError = console.error;
   console.error = () => {};
-  failWrites = true;
+  setFailWrites(true);
   await store.update({ sidebarPosition: "left" });
-  failWrites = false;
+  setFailWrites(false);
   console.error = realConsoleError;
 
   expectEqual(store.lastError.value === null, false, "a failed write is recorded instead of swallowed");

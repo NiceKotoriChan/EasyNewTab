@@ -151,4 +151,13 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown, true));
 .btn.is-danger:hover {
   filter: brightness(1.08);
 }
+
+/* A destructive confirmation is the worst place in the app for a mis-tap, and
+   the two buttons sit a finger's width apart. */
+@media (pointer: coarse) {
+  .btn {
+    height: 42px;
+    padding: 0 18px;
+  }
+}
 </style>

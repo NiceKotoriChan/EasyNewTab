@@ -37,7 +37,12 @@ export interface BookmarkTreeContext {
   blockedIds: ComputedRef<Set<string>>;
   /** Left-click: open a bookmark, fold/unfold a folder. See `resolveRowActivation`. */
   activate(node: BookmarkNode): void;
-  nodeContextMenu(event: MouseEvent, node: BookmarkNode): void;
+  /**
+   * A row's context menu, anchored at a point. Coordinates rather than an event
+   * because the tree also opens it by long press, which has no mouse event to
+   * read them from — see `useLongPress`.
+   */
+  nodeContextMenu(x: number, y: number, node: BookmarkNode): void;
   deleteNode(node: BookmarkNode): void;
   /** Hand a row's DOM element to the tree. Returns the cleanup for unmount. */
   registerRow(el: HTMLElement, reg: RowRegistration): Cleanup;

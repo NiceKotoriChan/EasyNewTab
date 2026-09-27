@@ -3,6 +3,15 @@
  * Settings page — the extension's own options page, and since the new tab page
  * has no gear button, the only place preferences can be changed.
  *
+ * Three sections, and the split is the point. **General** holds the behaviour
+ * toggles. **Layout** holds the docking side on its own, because it is the one
+ * preference that is about the shell rather than about bookmarks, and it is
+ * offered on a touchscreen too: a stacked shell has no left and right, but the
+ * same preference is what governs the side-by-side layout the moment the window
+ * is wide enough for one. **Shortcuts** documents the bare-key bindings, so it
+ * is left out entirely on a touch device — there is no keyboard there to press
+ * them on, and a list of keys nothing can reach is worse than no list.
+ *
  * No Save button: every control writes to `storage.sync` on change. The page
  * carries no prose either — a row is a name and a control, a section is a title
  * and its rows — so "which way counts as shut" is documented nowhere in the UI
@@ -23,6 +32,7 @@
 import Icon from "../components/ui/Icon.vue";
 import type { IconName } from "../components/ui/mdi-icons";
 import { useSettings } from "../composables/useSettings";
+import { usePlatform } from "../composables/usePlatform";
 import { SHORTCUTS } from "./shortcuts";
 import type { SidebarPosition } from "@/core/settings";
 
@@ -38,6 +48,7 @@ const POSITIONS: Array<{
 ];
 
 const { settings, ready, lastError, update } = useSettings();
+const { isTouch } = usePlatform();
 
 function onOpenInNewTabChange(event: Event): void {
   void update({ openInNewTab: (event.target as HTMLInputElement).checked });
@@ -92,30 +103,6 @@ function setSidebarPosition(id: SidebarPosition): void {
           <div class="group">
             <div class="row">
               <div class="row-text">
-                <div class="row-label">Sidebar position</div>
-              </div>
-              <div class="row-control">
-                <div class="seg" role="group" aria-label="Sidebar position">
-                  <button
-                    v-for="option in POSITIONS"
-                    :key="option.id"
-                    type="button"
-                    class="seg-item"
-                    :class="{
-                      'is-active': settings.sidebarPosition === option.id,
-                    }"
-                    :aria-pressed="settings.sidebarPosition === option.id"
-                    @click="setSidebarPosition(option.id)"
-                  >
-                    <Icon :name="option.icon" :size="14" />
-                    <span>{{ option.label }}</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="row-text">
                 <div class="row-label">Open bookmarks in a new tab</div>
               </div>
               <div class="row-control">
@@ -144,7 +131,47 @@ function setSidebarPosition(id: SidebarPosition): void {
           </div>
         </section>
 
+        <!-- Its own section rather than a third row under General: it is the
+             one setting about the shell itself, and it is the one that has to
+             be here on a touchscreen, where the rest of the shell has been
+             rearranged around it. -->
         <section class="panel">
+          <div class="panel-head">
+            <span class="panel-mark"><Icon name="panel-left" :size="15" /></span>
+            <h2 class="panel-title">Layout</h2>
+          </div>
+
+          <div class="group">
+            <div class="row">
+              <div class="row-text">
+                <div class="row-label">Sidebar position</div>
+              </div>
+              <div class="row-control">
+                <div class="seg" role="group" aria-label="Sidebar position">
+                  <button
+                    v-for="option in POSITIONS"
+                    :key="option.id"
+                    type="button"
+                    class="seg-item"
+                    :class="{
+                      'is-active': settings.sidebarPosition === option.id,
+                    }"
+                    :aria-pressed="settings.sidebarPosition === option.id"
+                    @click="setSidebarPosition(option.id)"
+                  >
+                    <Icon :name="option.icon" :size="14" />
+                    <span>{{ option.label }}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Absent rather than merely unhelpful on a touch device: the list
+             exists to document keys, and there is no keyboard to press them
+             with. -->
+        <section v-if="!isTouch" class="panel">
           <div class="panel-head">
             <span class="panel-mark"><Icon name="keyboard" :size="15" /></span>
             <h2 class="panel-title">Shortcuts</h2>
@@ -459,5 +486,31 @@ kbd {
   border-bottom-width: 2px;
   border-radius: 5px;
   box-shadow: var(--shadow-xs);
+}
+
+/* Narrow, the card is most of the window rather than a column inside it, so the
+   card's own padding and the rows' is what has to give. The label may wrap; the
+   control keeps its size, because a switch that shrank with the window would be
+   the one thing on the page that got harder to hit on the device that has the
+   least room to aim with. */
+@media (max-width: 720px) {
+  .content {
+    padding: 18px 16px 20px;
+  }
+
+  .row {
+    gap: 14px;
+    padding: 12px 13px;
+  }
+
+  .seg-item {
+    padding: 0 11px;
+  }
+
+  .shortcut {
+    grid-template-columns: 62px 1fr;
+    gap: 10px;
+    padding: 9px 13px;
+  }
 }
 </style>

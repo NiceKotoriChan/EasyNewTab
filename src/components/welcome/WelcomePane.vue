@@ -4,26 +4,62 @@
  * box, so opening a new tab and typing still just works. The search box is the
  * only thing here that takes input.
  *
+ * Compact, this is the top card of a stacked shell and shrinks to the search box
+ * and its engine row. The clock and the most-visited row are both ambient
+ * information — things a wide window has room to say and a phone does not — and
+ * dropping them is what keeps the card as tall as the one control on it.
+ *
  * The box is autofocused on mount, which covers a plain new tab; it is also
  * exposed for the case mount does not cover — `/` pressed while a detail view was
  * open, where this pane is created *by* the keystroke.
  */
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import SearchField from "../SearchField.vue";
 import TopSites from "./TopSites.vue";
+import { usePlatform } from "@/composables/usePlatform";
 import { formatDate, formatTime } from "@/core/utils";
+
+const { isCompact } = usePlatform();
 
 const now = ref(new Date());
 let timer: number | undefined;
+let stopWatching: (() => void) | null = null;
+
+function stopClock(): void {
+  if (timer !== undefined) {
+    clearInterval(timer);
+    timer = undefined;
+  }
+}
+
+/**
+ * Run the tick only while the clock is on screen.
+ *
+ * A second is the resolution the clock shows, so here a tick is not a rounding
+ * error — it is the whole update. That is also why the compact layout stops it:
+ * a timer whose value nothing reads is one wakeup a second for nothing, and on
+ * the device that gets this layout that is the battery talking.
+ */
+function syncClock(): void {
+  stopClock();
+  if (!isCompact.value) {
+    timer = window.setInterval(() => {
+      now.value = new Date();
+    }, 1000);
+  }
+}
 
 onMounted(() => {
-  timer = window.setInterval(() => {
-    now.value = new Date();
-  }, 1000);
+  syncClock();
+  // Followed rather than read once: widening the window past the boundary has
+  // to bring back a clock showing the right time, not the time it was mounted.
+  stopWatching = watch(isCompact, syncClock);
 });
 
 onBeforeUnmount(() => {
-  if (timer !== undefined) clearInterval(timer);
+  stopWatching?.();
+  stopWatching = null;
+  stopClock();
 });
 
 const clock = computed(() => formatTime(now.value));
@@ -48,16 +84,16 @@ defineExpose({ focus: () => field.value?.focus() });
 </script>
 
 <template>
-  <section class="welcome">
+  <section class="welcome" :class="{ 'is-compact': isCompact }">
     <div class="stack">
-      <div class="clock-block">
+      <div v-if="!isCompact" class="clock-block">
         <div class="clock">{{ clock }}</div>
         <div class="date">{{ date }}</div>
       </div>
 
       <div class="search-block">
         <SearchField ref="field" autofocus large show-engines @escape="leaveField" />
-        <TopSites />
+        <TopSites v-if="!isCompact" />
       </div>
     </div>
   </section>
@@ -75,6 +111,13 @@ defineExpose({ focus: () => field.value?.focus() });
      instead of drifting to the middle of a tall screen. */
   padding: clamp(56px, 13vh, 150px) 24px 40px;
   overflow-y: auto;
+}
+
+/* Stacked, this is a card rather than the page, so there is no tall window to
+   put the box in the upper third of — the card is already only as tall as its
+   contents. The landing zone becomes ordinary padding. */
+.welcome.is-compact {
+  padding: 20px 16px 18px;
 }
 
 .stack {
