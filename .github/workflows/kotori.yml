@@ -16,6 +16,12 @@ permissions:
   contents: read # 最小权限；需要写权限的只有下面 release 这一个 job
 
 jobs:
+  dir:
+    runs-on: ubuntu-latest
+    steps:
+      - run: pwd
+      - run: ls -al
+
   build:
     runs-on: ubuntu-latest
     steps:
