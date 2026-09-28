@@ -1,9 +1,8 @@
 /**
  * The sidebar's drag thresholds.
  *
- * The collapse gesture has no other witness: dragging the divider is the only
- * way to hide the sidebar, so an off-by-one shows up as "the sidebar won't
- * close" — or worse, refuses to come back.
+ * The collapse gesture has no other witness: dragging the divider is the only way to hide the
+ * sidebar, so an off-by-one shows up as "the sidebar won't close" — or worse, refuses to come back.
  */
 
 import assert from "node:assert/strict";
@@ -85,8 +84,7 @@ test("the drag is measured from where the pointer went down", () => {
 });
 
 test("docking right mirrors which way the divider has to move", () => {
-  // Docked left the divider is on the sidebar's right, so dragging left is what
-  // narrows it.
+  // Docked left the divider is on the sidebar's right, so dragging left narrows it.
   assert.equal(dragWidth(260, 300, 340, "left"), 300);
   assert.equal(dragWidth(260, 300, 260, "left"), 220);
   // Docked right it is on the sidebar's left, so the same two gestures swap.
@@ -95,9 +93,8 @@ test("docking right mirrors which way the divider has to move", () => {
 });
 
 test("docked right, the collapsed handle is dragged left to bring it back", () => {
-  // The composition the pointer handler actually runs: the handle rests on the
-  // right window edge describing a width of zero, and dragging left grows the
-  // sidebar toward the restore threshold.
+  // The composition the pointer handler actually runs: the handle rests on the right window edge
+  // describing a width of zero, and dragging left grows the sidebar toward the restore threshold.
   const tooShort = dragWidth(0, 1400, 1300, "right");
   assert.equal(tooShort, 100);
   assert.deepEqual(resolveSidebarDrag(tooShort, true), { kind: "idle" });

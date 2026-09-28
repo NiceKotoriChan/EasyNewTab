@@ -1,21 +1,11 @@
-/**
- * Write the app mark to `public/icons/icon{16,48,128}.png`.
- *
- *   npm run icons
- *
- * A thin wrapper: `mark-png.mjs` draws the bytes, this puts them where the manifest
- * points and checks them on the way out. Run it after touching `app-mark.mjs` — and if
- * you forget, `npm run check` says so, because the guardrail renders the mark again and
- * compares.
- */
+// Writes the app mark to public/icons and re-checks it the way `npm run check`'s guardrail does.
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { MARK_SIZES, markPixel, quadness } from "./app-mark.mjs";
 import { markPng } from "./mark-png.mjs";
 import { readPng } from "./png-probe.mjs";
 
-/** Read back through the decoder the guardrail uses, so a written file that does not
- *  decode as this mark fails here rather than at the next `npm run check`. */
+// Decoded through the same path the guardrail uses, so a bad write fails here, not at `npm run check`.
 function verify(path, size, quads) {
   const png = readPng(readFileSync(path));
   if (png.width !== size || png.height !== size) {

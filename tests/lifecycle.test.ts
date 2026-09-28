@@ -1,13 +1,4 @@
-/**
- * The extension-context watchdog's decision function.
- *
- * Two failure modes of the recovery are worse than the disease, and neither can
- * be caught by a render check: reloading a page whose context was never alive
- * (a reload loop), and reloading forever on a context that keeps dying.
- *
- * The probes themselves live in `bootstrap.ts` and are not covered here — they
- * are two lines of try/catch around the real APIs.
- */
+// Tests the context-watchdog decision: the dangerous failures (reload loop on a never-alive context, or reloading forever on a dying one) can't be caught by a render check. Probes live in bootstrap.ts.
 
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -19,9 +10,7 @@ import {
 } from "../src/core/lifecycle.ts";
 
 test("a context that was never alive is never healed", () => {
-  // This is the reload-loop guard: a page loaded while the extension is
-  // disabled sees a dead context from its very first check, and reloading it
-  // would only produce another dead context.
+  // The reload-loop guard: a page loaded while the extension is disabled sees a dead context from the first check, and reloading only yields another dead one.
   const verdict = resolveContextHealth(INITIAL_CONTEXT_HEALTH, false);
   assert.equal(verdict.heal, false);
   assert.equal(verdict.next.trusted, false);
@@ -56,8 +45,7 @@ test("a context that dies after being alive is reloaded once", () => {
 });
 
 test("the same page load never asks for a second reload", () => {
-  // The reload does not happen synchronously, so several probes can land in
-  // the gap. Without this the page would stack up reloads.
+  // The reload isn't synchronous, so several probes can land in the gap; without this guard the page would stack up reloads.
   const armed = resolveContextHealth(INITIAL_CONTEXT_HEALTH, true).next;
   const first = resolveContextHealth(armed, false);
   const second = resolveContextHealth(first.next, false);
@@ -67,8 +55,7 @@ test("the same page load never asks for a second reload", () => {
 });
 
 test("the reload budget is finite", () => {
-  // Simulates a context that dies again immediately after every reload: the
-  // counter is carried across reloads precisely so this stays bounded.
+  // Simulates a context that dies again after every reload; the counter is carried across reloads precisely so this stays bounded.
   let state = { ...INITIAL_CONTEXT_HEALTH };
   let heals = 0;
   for (let i = 0; i < 20; i += 1) {

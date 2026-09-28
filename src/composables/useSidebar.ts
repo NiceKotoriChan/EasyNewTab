@@ -112,7 +112,7 @@ export function useSidebar(): {
   return { width, collapsed, toggle, setWidth, startResize };
 }
 
-/** Persist the active panel without spinning up the whole geometry store. */
+// Persist the active panel without spinning up the whole geometry store.
 export function persistActiveView(view: LayoutState["activeView"]): void {
   void saveLayout({ activeView: view });
 }

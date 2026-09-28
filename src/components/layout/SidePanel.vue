@@ -1,11 +1,5 @@
 <script setup lang="ts">
-/**
- * Sidebar pane: a segmented switch (bookmarks / history) above a scrolling body.
- *
- * The switch lives here rather than in an icon rail because there are only two
- * panels, and it is the header's only content: settings belong to the options
- * page, and hiding the sidebar is a drag on the divider.
- */
+// Sidebar pane: a segmented switch (bookmarks / history) above a scrolling body. The switch lives here because there are only two panels and it's the header's only content.
 import Icon from "../ui/Icon.vue";
 import type { IconName } from "../ui/mdi-icons";
 import type { LayoutState } from "@/core/settings";
@@ -50,8 +44,7 @@ const TABS: Array<{
 </template>
 
 <style scoped>
-/* No background, border, radius or shadow: the pane is the page colour, and the
-   line beside it belongs to the sash that draws it. */
+/* No border: the pane is the page colour and the line beside it belongs to the sash. */
 .side-panel {
   display: flex;
   flex-direction: column;
@@ -110,7 +103,7 @@ const TABS: Array<{
 }
 
 .panel-body {
-  /* Panels own their own scrolling so toolbars/filters stay pinned. */
+  /* Panels own their scrolling so toolbars/filters stay pinned. */
   flex: 1;
   min-height: 0;
   display: flex;
@@ -118,7 +111,7 @@ const TABS: Array<{
   padding-top: 8px;
 }
 
-/* Below the sidebar's own minimum width the labels would clip anyway. */
+/* Below the sidebar's minimum width the labels would clip anyway. */
 @media (max-width: 640px) {
   .tab-label {
     display: none;

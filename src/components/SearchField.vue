@@ -1,16 +1,5 @@
 <script setup lang="ts">
-/**
- * Search input + engine switcher + suggestion dropdown.
- *
- * Used by the welcome pane (hero size, autofocused). All state comes from
- * `useSearch()`, so every entry point shares one engine choice and one behaviour
- * definition. The hero variant is deliberately large — 58px tall, fully rounded — because
- * this box is the one interactive thing on a page whose entire purpose is "open a tab and
- * type". It sits flat on the page like every other field: the size and the focus ring are
- * what mark it out, not elevation. `showEngines` puts the engine row back
- * under the input; it lives in the search box rather than a settings screen, which is
- * where you look when a query came back from the wrong engine.
- */
+// Search input + engine switcher + suggestion dropdown. All state lives in `useSearch()`.
 import { computed, onMounted, ref } from "vue";
 import EngineSwitcher from "./EngineSwitcher.vue";
 import { useSearch } from "@/composables/useSearch";
@@ -40,7 +29,7 @@ const { query, suggestions, activeIndex, canSuggest, move, commit, pick } =
 const input = ref<HTMLInputElement | null>(null);
 const focused = ref(false);
 
-/** No dropdown for engines without a suggestion endpoint (GitHub). */
+// No dropdown for engines without a suggestion endpoint (GitHub).
 const dropdownOpen = computed(
   () => focused.value && canSuggest.value && query.value.trim().length > 0,
 );
@@ -64,9 +53,7 @@ function onKeydown(event: KeyboardEvent): void {
       break;
     case "Escape":
       event.preventDefault();
-      // Escape unwinds a level at a time: the first press clears the query, the
-      // next one hands the field back. Propagation always stops here, so the
-      // shell's window-level Escape does not also fire on the same press.
+      // Escape unwinds a level at a time (clear, then hand focus back); propagation always stops here so the shell's Escape doesn't also fire.
       event.stopPropagation();
       if (query.value) clear();
       else emit("escape");
@@ -89,12 +76,8 @@ onMounted(() => {
   if (props.autofocus) input.value?.focus();
 });
 
-/**
- * Both directions are exposed because the field is the page's `typing` state:
- * `focus` is what `/` calls, and `blur` is what Escape calls to hand the
- * keyboard back, without which none of the shell's bare-key bindings can be
- * reached on a page whose search box autofocuses on mount.
- */
+// Exposed because the field is the page's `typing` state: `/` focuses it, Escape blurs it
+// (otherwise no bare-key binding is reachable on a page that autofocuses the box on mount).
 defineExpose({
   focus: () => input.value?.focus(),
   blur: () => input.value?.blur(),
@@ -159,17 +142,12 @@ defineExpose({
 .search-field {
   display: flex;
   flex-direction: column;
-  /* Input ↔ engine row. 14px was the original build's value and is what both
-     variants inherited; at 58px tall the hero box made the row underneath read
-     as crowded, so it is 20px now — still well inside the 32px that separates
-     the shortcut tiles, because the engine row belongs to the box and the tiles
-     do not. */
+  /* 20px keeps the engine row clear of the hero box while staying inside the shortcut tiles' 32px rhythm. */
   gap: 20px;
   width: 100%;
 }
 
-/* Anchors the dropdown to the input specifically, so the engine row below
-   stays outside its positioning context. */
+/* Anchors the dropdown to the input so the engine row below stays outside its positioning context. */
 .field-wrap {
   position: relative;
 }
@@ -197,7 +175,6 @@ defineExpose({
   box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
-/* --- Hero variant ------------------------------------------------- */
 .is-large .field {
   height: 58px;
   padding: 0 12px 0 20px;
@@ -265,7 +242,6 @@ defineExpose({
   height: 30px;
 }
 
-/* --- Suggestions --------------------------------------------------- */
 .suggestions {
   position: absolute;
   top: calc(100% + 8px);

@@ -1,18 +1,15 @@
 /**
  * The two axes the app adapts on, deliberately kept separate:
  *
- * - `isCompact` (≤720px) — is there room? Two panes stop fitting side by side,
- *   so the shell stacks them. A fact about the *window*: a narrow desktop window
- *   gets it too.
- * - `isTouch` (coarse pointer) — what can the input do? No right button (so
- *   menus need a long press) and no hardware keyboard (so bare-key bindings
- *   document nothing). A touchscreen laptop has both a mouse and a keyboard, so
- *   it gets neither.
+ * - `isCompact` (≤720px) — is there room? Two panes stop fitting side by side, so the shell stacks
+ *   them. A fact about the *window*: a narrow desktop window gets it too.
+ * - `isTouch` (coarse pointer) — what can the input do? No right button (so menus need a long
+ *   press) and no hardware keyboard. A touchscreen laptop has both a mouse and a keyboard, so it
+ *   gets neither.
  *
- * Merging them would make one of the two devices wrong. The two components that
- * carry a width breakpoint of their own (`SidePanel` hides tab labels below 640,
- * `EngineSwitcher` its engine names) answer whether *their own* contents fit and
- * are left alone.
+ * Merging them would make one of the two devices wrong. The two components with a width breakpoint
+ * of their own (`SidePanel` below 640, `EngineSwitcher` its engine names) answer whether *their own*
+ * contents fit and are left alone.
  */
 import { ref, type Ref } from "vue";
 
@@ -24,12 +21,8 @@ const isTouch = ref(false);
 
 let wired = false;
 
-/** Read both queries, then follow them. Synchronous on purpose — it runs during
- *  the first `setup`, so a phone never sees a frame of the desktop shell; under
- *  SSR there is no `window` and both stay `false`. The listeners are never
- *  removed: there is one page and one pair of queries, so tying them to a
- *  component's lifetime would only mean the first unmount switched the app back
- *  to desktop. */
+// Synchronous on first setup (a phone never sees a desktop frame; under SSR there's no
+// window so both stay false). Listeners are never removed: one page, one pair of queries.
 function wire(): void {
   if (wired) return;
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") {

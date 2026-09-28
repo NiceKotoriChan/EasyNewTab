@@ -1,25 +1,12 @@
 <script setup lang="ts">
-/**
- * Search engine switcher — the row of engine chips under the search box.
- *
- * Six separate outlined pills rather than one segmented track, because six independent
- * choices is what this row actually is: a track draws a single border around the whole
- * row and raises the current option, which reads as one control with a value. Here each
- * engine gets its own border and the current one is marked by colour instead. It writes
- * through `useSettings()`, so the choice persists and is visible to whichever search
- * field is on screen; `useSearch()` watches the engine and re-runs the pending query.
- */
+// Search engine switcher — the row of engine chips under the search box. Six outlined pills (independent choices) rather than one segmented track; writes through `useSettings()` so the choice persists and `useSearch()` re-runs the pending query.
 import EngineIcon from "./ui/EngineIcon.vue";
 import { useSettings } from "@/composables/useSettings";
 import { ENGINES, ENGINE_IDS, type EngineId } from "@/core/engines";
 
 const { settings, update } = useSettings();
 
-/**
- * `mousedown` rather than `click` so the input keeps focus (and the dropdown
- * stays open while a query is pending); `click` is kept for keyboard users,
- * and is a no-op the second time because of the guard below.
- */
+// `mousedown` (not `click`) keeps the input focused while a query is pending; `click` is kept for keyboard users and is a no-op when already selected.
 function choose(id: EngineId): void {
   if (id === settings.value.searchEngine) return;
   void update({ searchEngine: id });
@@ -46,8 +33,7 @@ function choose(id: EngineId): void {
 </template>
 
 <style scoped>
-/* `fit-content` + `align-self` so the row hugs its pills instead of stretching
-   to the search box width, while still wrapping when narrow. */
+/* `fit-content` + `align-self` so the row hugs its pills instead of stretching, but still wraps when narrow. */
 .engines {
   display: flex;
   flex-wrap: wrap;
@@ -58,9 +44,7 @@ function choose(id: EngineId): void {
   max-width: 100%;
 }
 
-/* The original pill: an 18px brand mark plus the name, outlined, one per
-   engine. It is 32px tall including the border — the same height the track's
-   options had, so nothing below this row moved. */
+/* 18px brand mark + name, outlined, one per engine; 32px tall (border included) to match the old track's options, so nothing below moved. */
 .engine {
   display: flex;
   align-items: center;
@@ -80,10 +64,7 @@ function choose(id: EngineId): void {
   border-color: var(--border-strong);
 }
 
-/* Marked by colour rather than by elevation: the border and the label take the
-   accent, and the fill steps back to the neutral inset. The weight is the one
-   addition the current build makes to the original rule — the accent alone is
-   a thin signal at 12.5px. */
+/* Marked by colour, not elevation: border + label take the accent, fill steps back to the neutral inset. The weight is the one addition the build makes (accent alone is thin at 12.5px). */
 .engine.is-active {
   background: var(--inset);
   border-color: var(--accent);
@@ -91,9 +72,7 @@ function choose(id: EngineId): void {
   font-weight: 500;
 }
 
-/* Six named pills need about 580px; the row's own container is
-   `min(620px, 100vw - 48px)`, so below ~640px they would fold onto a second
-   line. Icons alone identify the engines, so the names go first. */
+/* Six pills need ~580px but the container is `min(620px, 100vw - 48px)`, so below ~640px they fold onto a second line — names drop, icons alone identify them. */
 @media (max-width: 640px) {
   .name {
     display: none;

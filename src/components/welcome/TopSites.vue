@@ -1,20 +1,5 @@
 <script setup lang="ts">
-/**
- * The most-visited row: up to eight sites, under the search box.
- *
- * The tile is Chromium's own (`cr-most-visited`) — 112px tile, 48px circle, 24px
- * favicon, 12px label — so "the same as Chrome" stays checkable against its source
- * instead of against memory. Two deliberate differences: the grid is two rows of four
- * rather than one reflowing line (this pane is 620px, where a fifth column would fold
- * eight sites into an uneven 5+3), and none of the add/edit affordances are copied.
- *
- * Clicking obeys `openInNewTab` like the sidebar does: the element is a real `<a>` so
- * the URL preview and modifier-clicks keep working, and the handler only takes over
- * the plain left click, whose default would navigate *this* tab away. `data-site-url`
- * is the render check's handle on one entry — without it, a search for the host would
- * be answered by the percent-encoded copy inside the favicon's query string even if
- * the label were blank.
- */
+// The most-visited row: Chrome's own top entries, up to eight of them, under the search box. The tile is Chromium's `cr-most-visited` (sizes copied from its source); `data-site-url` is the render check's handle on one entry.
 import { useSettings } from "@/composables/useSettings";
 import { useTopSites } from "@/composables/useTopSites";
 import { openUrl } from "@/core/utils";
@@ -24,8 +9,7 @@ const { sites } = useTopSites();
 const { settings } = useSettings();
 
 function open(url: string, event: MouseEvent): void {
-  // Cmd/Ctrl click means "a tab of its own" and the browser already does that
-  // from the `href`. Only the plain click needs intercepting.
+  // Cmd/Ctrl click already opens its own tab via the `href`; only the plain click needs intercepting.
   if (event.metaKey || event.ctrlKey) return;
   event.preventDefault();
   openUrl(url, settings.value.openInNewTab);
@@ -53,13 +37,10 @@ function open(url: string, event: MouseEvent): void {
 
 <style scoped>
 .top-sites {
-  /* Chromium's `--tile-size` default, and the unit the whole row is built from:
-     the track width, the tile, and the label's own ellipsis box. */
+  /* Chromium's `--tile-size` default, and the unit the whole row is built from (track, tile, label ellipsis box). */
   --tile-size: 112px;
   display: grid;
-  /* Fixed tracks rather than `1fr`: the tiles are a fixed size in Chromium, and
-     stretching them would push the labels past the `--tile-size - 10px` box its
-     ellipsis rule is written against. */
+  /* Fixed tracks, not `1fr`: stretching would push labels past the `--tile-size - 10px` ellipsis box Chromium's rule is written against. */
   grid-template-columns: repeat(4, var(--tile-size));
   justify-content: center;
 }
@@ -73,16 +54,12 @@ function open(url: string, event: MouseEvent): void {
   border-radius: var(--radius-xs);
   cursor: pointer;
   user-select: none;
-  /* The app has no link reset, so the browser's blue-and-underlined default has
-     to be turned off here — this is a tile, not a link somebody pasted. Chromium
-     also uses the *primary* foreground for the label, so this is `--text` and
-     not the muted grey the eye would expect under a search box. */
+  /* No link reset in the app, so turn off the browser's blue underline here; Chromium uses `--text` (the primary fg) for the label, not the muted grey. */
   color: var(--text);
   text-decoration: none;
 }
 
-/* Chromium washes the entire tile, not just the circle: the 112px square is the
-   hit area, and the hover is what says so. The text colour does not change. */
+/* Chromium washes the whole tile, not just the circle: the 112px square is the hit area, and the hover says so. */
 .site:hover {
   background: var(--tile-hover);
 }
@@ -94,18 +71,13 @@ function open(url: string, event: MouseEvent): void {
   flex: none;
   width: 48px;
   height: 48px;
-  /* Chromium pushes the icon 16px down inside the tile rather than centring the
-     tile's contents, which is what leaves the slack at the bottom. */
+  /* Chromium pushes the icon 16px down inside the tile rather than centring contents, leaving the slack at the bottom. */
   margin-top: 16px;
   border-radius: var(--radius-full);
   background: var(--tile-bg);
 }
 
-/* Chromium's title box: 32px tall around a 16px line, so the single line lands
-   in the middle; the padding is symmetric for the same reason. The ellipsis sits
-   on the box itself — Chromium nests a span inside it to handle RTL, and there
-   is nothing to reverse here, so the extra element would only cost the render
-   check its label slice. */
+/* Chromium's title box: 32px tall around a 16px line (symmetric padding). The ellipsis sits on the box — Chromium nests a span for RTL, but there's nothing to reverse here, so the extra element would only cost the render check its label slice. */
 .label {
   box-sizing: border-box;
   display: block;
@@ -122,8 +94,7 @@ function open(url: string, event: MouseEvent): void {
   text-align: center;
 }
 
-/* Four 112px tiles plus the welcome pane's 24px gutters; narrower than that the
-   row folds the way Chromium's own grid does when the columns stop fitting. */
+/* Four 112px tiles plus the 24px gutters; narrower than that the row folds, like Chromium's own grid when columns stop fitting. */
 @media (max-width: 495px) {
   .top-sites {
     grid-template-columns: repeat(3, var(--tile-size));

@@ -1,24 +1,23 @@
 /**
  * History state — shared by the sidebar list and the panel switch.
+ *
+ * The cap is the user's (`Settings.historyLimit`, 100 by default), because
+ * `chrome.history.search` will happily answer with a whole profile's worth of rows. The other two
+ * query fields are deliberate: `startTime: 0`, because the API's own default is the last 24 hours,
+ * and `text: ""`, which is what means "match everything". The API's order is kept as-is.
  */
-import { computed, ref, type ComputedRef, type Ref } from "vue";
-import { groupHistory, type HistoryGroup, type HistoryItemLike } from "@/core/history";
+import { ref, type Ref } from "vue";
+import { type HistoryItemLike } from "@/core/history";
+import { normalizeSettings } from "@/core/settings";
 import { debounce } from "@/core/utils";
+import { useSettings } from "./useSettings";
 
-/**
- * Every page ever visited, newest first. Three of `history.search`'s four fields
- * default to something narrower than "everything": `maxResults` is 100,
- * `startTime` is 24 hours ago, and `text: ""` is what means "match all". One
- * million stands in for "no limit" — the API throws on anything below 1.
- */
-const NO_LIMIT = 1_000_000;
-
-async function searchHistory(): Promise<HistoryItemLike[]> {
+async function searchHistory(limit: number): Promise<HistoryItemLike[]> {
   try {
     return await chrome.history.search({
       text: "",
       startTime: 0,
-      maxResults: NO_LIMIT,
+      maxResults: limit,
     });
   } catch (err) {
     console.error("Failed to load history:", err);
@@ -35,18 +34,49 @@ function onHistoryChanged(cb: () => void): () => void {
   };
 }
 
+/**
+ * The cap is a setting, so a settings write is the one thing this store watches for — and watching
+ * storage is what it does instead of holding a `watch` on the ref, which is a no-op when the module
+ * is first evaluated during a server render.
+ */
+function onSettingsChanged(cb: () => void): () => void {
+  const listener = (
+    changes: Record<string, chrome.storage.StorageChange>,
+    areaName: string,
+  ) => {
+    if (areaName !== "sync" || !changes.settings) return;
+    // Compared against the cap already on screen rather than applied blindly: this page hears
+    // about *every* settings write, and re-querying because the docking side moved is unasked-for work.
+    const next = normalizeSettings(changes.settings.newValue).historyLimit;
+    if (next !== shownLimit) cb();
+  };
+  chrome.storage.onChanged.addListener(listener);
+  return () => chrome.storage.onChanged.removeListener(listener);
+}
+
+const { settings, whenReady } = useSettings();
+
 const items = ref<HistoryItemLike[]>([]);
 const loading = ref(true);
 const failed = ref(false);
 
 let bootstrapped = false;
 
+// The cap the on-screen rows were fetched with, or null before the first fetch.
+let shownLimit: number | null = null;
+
 const scheduleReload = debounce(() => void reload(), 300);
 
 async function reload(): Promise<void> {
   loading.value = true;
   try {
-    items.value = await searchHistory();
+    // The cap lives in storage and this run starts while that read is still in flight, so without
+    // the wait the first list would be built from the default — a profile asking for 300 rows would
+    // show 100 of them until something else happened to reload it.
+    await whenReady();
+    const limit = settings.value.historyLimit;
+    items.value = await searchHistory(limit);
+    shownLimit = limit;
     failed.value = false;
   } catch (err) {
     console.error("Failed to load history:", err);
@@ -62,31 +92,21 @@ function bootstrap(): void {
   void reload();
   // Visits and removals arrive in bursts — a bulk delete fires once per URL.
   onHistoryChanged(scheduleReload);
+  onSettingsChanged(scheduleReload);
 }
 
 export function useHistory(): {
   items: Ref<HistoryItemLike[]>;
-  groups: ComputedRef<HistoryGroup[]>;
   loading: Ref<boolean>;
   failed: Ref<boolean>;
   reload: () => Promise<void>;
-  remove: (url: string) => Promise<void>;
 } {
   bootstrap();
 
-  const groups = computed(() => groupHistory(items.value));
-
-  async function remove(url: string): Promise<void> {
-    await chrome.history.deleteUrl({ url });
-    await reload();
-  }
-
   return {
     items,
-    groups,
     loading,
     failed,
     reload,
-    remove,
   };
 }

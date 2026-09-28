@@ -1,28 +1,10 @@
-/**
- * Shared harness for the scripts that stand in for a browser.
- *
- * Two scripts render the extension outside Chrome: `render-check.mjs`, which asserts on
- * what comes out, and `mobile-preview.mjs`, which saves it as a page you can look at.
- * Both need the same three things — a `chrome.*` surface that answers like the real one,
- * fixtures that trip the interesting edges, and a Vite server that compiles the actual
- * SFCs — and keeping them here means the two cannot drift.
- *
- * The stub is deliberately shallow. It answers; it does not model. What a browser does
- * with a bookmark tree, a storage quota or a `pointer: coarse` media query is not
- * reproducible in a Node process, so nothing here pretends to try.
- */
+// Shared chrome stub + fixtures + Vite server for render-check and mobile-preview, so the two can't drift; the stub answers, it doesn't model.
 
 import { createServer } from "vite";
 
 const noop = () => {};
 
-/**
- * Event stubs that keep their listeners, so a caller can *fire* a change
- * instead of only proving a listener could be attached. `chrome.storage`'s
- * change event is the one subscription whose reaction is worth exercising
- * end-to-end: a preference flipped in the options page has to reach the
- * bookmark tree without another `getTree()` round-trip.
- */
+// Keeps its listeners so a caller can *fire* a change — a preference flip must reach the tree without another `getTree()` round-trip.
 function makeEvent() {
   const listeners = [];
   return {
@@ -35,11 +17,7 @@ function makeEvent() {
   };
 }
 
-/**
- * A tree with the shapes that change how a row renders: a folder with a child,
- * a leaf, and an empty folder. The two top-level entries matter separately —
- * "Other bookmarks" is the one the settings toggle can hide.
- */
+// Covers the row shapes that change rendering (folder w/ child, leaf, nested leaf, empty folder); "Other bookmarks" is toggled separately.
 export const BOOKMARK_TREE = [
   {
     id: "0",
@@ -71,17 +49,12 @@ export const BOOKMARK_TREE = [
   },
 ];
 
-/**
- * Deliberately more than the row can show: twelve entries carrying a repeat
- * host, a `chrome://` page, a malformed URL, an entry with no title, and one
- * site too many for the cap. Every rule `selectTopSites` applies has an entry
- * here that trips it, so the row a script sees is the row a real profile would
- * produce.
- */
+// Ten rows: what a real profile tends to answer with, and more than the cap, so "the cap cut
+// something" stays visible. Row 2 is a second page of row 1's host, which is a real profile's shape,
+// and row 3 has a blank title, which is what Chrome actually sends.
 export const TOP_SITES = [
   { url: "https://github.com/", title: "GitHub" },
   { url: "https://github.com/explore", title: "Explore GitHub" },
-  { url: "chrome://bookmarks", title: "Bookmark Manager" },
   { url: "https://mail.google.com/mail/u/0/", title: "   " },
   { url: "https://news.ycombinator.com/", title: "Hacker News" },
   { url: "https://vuejs.org/", title: "Vue" },
@@ -89,14 +62,20 @@ export const TOP_SITES = [
   { url: "https://stackoverflow.com/", title: "Stack Overflow" },
   { url: "https://www.zhihu.com/", title: "知乎" },
   { url: "https://bilibili.com/", title: "bilibili" },
-  { url: "not-a-url", title: "Nope" },
   { url: "https://rust-lang.org/", title: "Rust" },
 ];
 
-// The two answers that are mutable mid-run. They are `let` behind setters
-// rather than exported bindings because an ES module export is read-only to its
-// importers, and both scripts flip them: one to see what the row does with
-// nothing to show, the other to drive the storage-quota failure path.
+// Generated (250 rows) so the cap can be asserted as "drew what the setting asked for" against a setting, not a constant.
+export const HISTORY_ITEMS = Array.from({ length: 250 }, (_, i) => ({
+  id: `h${i + 1}`,
+  url: `https://example.com/${i + 1}`,
+  title: `Example ${i + 1}`,
+  lastVisitTime: Date.now() - i * 60_000,
+  visitCount: 1,
+  typedCount: 0,
+}));
+
+// Mutable mid-run answers live behind setters because ES module exports are read-only to importers.
 let topSitesFixture = TOP_SITES;
 let failWrites = false;
 
@@ -110,13 +89,7 @@ export function setFailWrites(value) {
   failWrites = value;
 }
 
-/**
- * The `chrome.*` surface both scripts render against.
- *
- * One object rather than a fresh one per call so a caller can swap a single
- * method out mid-run and put it back — the settings check does exactly that, to
- * prove a read that resolves late cannot roll back a change that beat it.
- */
+// One object (not per-call) so a caller can swap a single method mid-run and restore it — the settings check does.
 const chromeApi = {
   storage: {
     sync: {
@@ -151,18 +124,15 @@ const chromeApi = {
     onImportEnded: makeEvent(),
   },
   history: {
-    search: async () => [
-      {
-        id: "h1",
-        url: "https://example.com/",
-        title: "Example",
-        lastVisitTime: Date.now(),
-        visitCount: 4,
-        typedCount: 1,
-      },
-    ],
-    deleteUrl: async () => {},
-    deleteAll: async () => {},
+    // Answers the query it is handed; a fixed row would let "cap applied" pass while no `maxResults` was sent. Default 100.
+    search: async (query = {}) => {
+      const from = query.startTime ?? 0;
+      const limit = query.maxResults ?? 100;
+      return HISTORY_ITEMS.filter((item) => item.lastVisitTime >= from).slice(
+        0,
+        limit,
+      );
+    },
     onVisited: makeEvent(),
     onVisitRemoved: makeEvent(),
   },
@@ -176,15 +146,7 @@ export function installChromeStub() {
   return chromeApi;
 }
 
-/**
- * A Vite dev server that compiles the real SFCs and resolves the real aliases.
- *
- * `middlewareMode` keeps it off the network — nothing is served and no port is
- * bound, the module graph is just used through `ssrLoadModule`. The plugin set
- * (and, importantly, `features.componentIdGenerator`) comes from
- * `vite.config.ts`, which is what keeps the scope hashes in this pipeline equal
- * to the ones in a production build.
- */
+// Vite dev server in `middlewareMode` (no port) compiling the real SFCs, so its scope hashes match a real build's.
 export async function createSsrServer(overrides = {}) {
   return createServer({
     server: { middlewareMode: true },

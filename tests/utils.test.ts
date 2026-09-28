@@ -1,19 +1,4 @@
-/**
- * Unit tests for the shared helpers in `core/utils.ts`.
- *
- * `formatDate` reads no ambient state, so almost every rule it follows is checkable
- * against a literal. The one that is not is the one that matters most — the locale it
- * must *ignore*. Node fixes its default locale at startup and ignores later writes to
- * `process.env`, so the only way to prove the function does not follow the host is to run
- * it in a second process with a different one.
- *
- * `openUrl` reaches for `chrome.tabs`, which Node does not have. The two calls are
- * recorded rather than made, so the assertion can name *which* one it picked instead of
- * only proving neither threw.
- *
- * Note that `tsconfig.json` does not include this directory, so these files are not
- * type-checked — only executed. A typo surfaces as a failing test, not a compiler error.
- */
+// Tests core/utils helpers: `formatDate` must ignore the host locale (proved in a second process), and `openUrl` is checked by recording which `chrome.tabs` call it makes. (Not type-checked — only run.)
 
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -34,10 +19,7 @@ test("the date line carries no year", () => {
 });
 
 test("the date line stays English under a non-English host locale", () => {
-  // The locale is printed next to the output on purpose. Asserting the two together
-  // stops this from passing vacuously: if `LC_ALL` ever stopped taking effect, the prefix
-  // would change and the failure would say which half broke, rather than quietly
-  // comparing English against English.
+  // Locale is printed next to the output so the assertion can't pass vacuously — if `LC_ALL` stops working, the prefix changes and names which half broke.
   const script = [
     'import { formatDate } from "./src/core/utils.ts";',
     'const locale = Intl.DateTimeFormat().resolvedOptions().locale;',
@@ -63,8 +45,7 @@ test("the clock is 24-hour and zero-padded", () => {
   assert.equal(formatTime(new Date(2026, 8, 25, 0, 0)), "00:00");
 });
 
-/** `openUrl`'s stub. Both calls are recorded, so a test that expected a new tab cannot
- *  pass on a same-page navigation that happened to not throw. */
+// `openUrl`'s stub records both calls, so a test expecting a new tab can't pass on a same-page navigation that merely didn't throw.
 const tabCalls: Array<[string, string]> = [];
 (globalThis as unknown as { chrome: unknown }).chrome = {
   tabs: {
@@ -76,9 +57,7 @@ const tabCalls: Array<[string, string]> = [];
 const SOME_URL = "https://example.com/";
 
 test("a click that beats the preference to the page opens a new tab", () => {
-  // The preference is read from storage, so it is genuinely `undefined` for the first
-  // click or two after a new tab opens. Reading that as "off" would send this page away
-  // from itself, which is the one outcome the new tab page cannot have.
+  // The preference is `undefined` on the first clicks after a new tab opens; reading it as "off" would navigate the new tab away from itself — the one outcome it can't have.
   tabCalls.length = 0;
   openUrl(SOME_URL, undefined);
   assert.deepEqual(tabCalls, [["create", SOME_URL]]);

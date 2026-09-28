@@ -1,7 +1,5 @@
-/** One context menu for the entire app: exactly one instance, rendered by `App.vue`,
- *  with one set of global dismissal listeners. `open` takes coordinates rather than a
- *  `MouseEvent`, because there are two ways in — a right-click, whose event carries
- *  them, and a touch long press, which has no mouse event to hand over. */
+// One app-wide menu, one instance rendered by App.vue with global dismissal listeners.
+// `open` takes coordinates (not a MouseEvent): a right-click carries them, a long press doesn't.
 import { ref, type Ref } from "vue";
 import type { MenuItem } from "@/core/menus";
 

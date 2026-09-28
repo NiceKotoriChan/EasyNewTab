@@ -1,21 +1,4 @@
-/**
- * The icon set: app-level names → Material Design Icons, resolved at build time.
- *
- * Source is Iconify's offline MDI package, and `unplugin-icons` turns each import
- * below into an inline SVG component — so only the icons listed here reach the
- * bundle, and nothing is fetched over the network (`script-src 'self'` would
- * block a remote icon API anyway).
- *
- * - **Outline variants for the utility glyphs**, because MDI's solid glyph at
- *   13–15px reads a full weight heavier than the 1.6px strokes it replaced.
- * - **`folder` is a pair:** `folder` (solid) is the closed state, `folder-open`
- *   (MDI's `folder-outline`) the expanded one. A folder row is the only row whose
- *   icon says something about its own state, and the solid → hollow swap is what
- *   makes it legible.
- * - **The keys are ours, not MDI's.** Call sites say `name="folder"`, never
- *   `folder-outline`, so a typo like `name="foldr"` is a *type error* at the call
- *   site rather than an invisible empty box — see `IconName`.
- */
+// App-level names → Material Design Icons, resolved at build time. `unplugin-icons` inlines each into an SVG component (no network fetch); our keys make a typo a type error, not an empty box.
 import type { Component } from "vue";
 import MdiAlertOutline from "~icons/mdi/alert-outline";
 import MdiArrowRight from "~icons/mdi/arrow-right";
@@ -31,11 +14,13 @@ import MdiFolderOutline from "~icons/mdi/folder-outline";
 import MdiHistory from "~icons/mdi/history";
 import MdiKeyboardOutline from "~icons/mdi/keyboard-outline";
 import MdiMagnify from "~icons/mdi/magnify";
+import MdiMinus from "~icons/mdi/minus";
 import MdiOpenInNew from "~icons/mdi/open-in-new";
+import MdiPlus from "~icons/mdi/plus";
 import MdiTrashCanOutline from "~icons/mdi/trash-can-outline";
 import MdiWeb from "~icons/mdi/web";
 
-/** Semantic name → MDI glyph. Adding an icon means adding one line here. */
+// Semantic name → MDI glyph. Adding an icon means adding one line here.
 const ICONS = {
   alert: MdiAlertOutline,
   "arrow-right": MdiArrowRight,
@@ -45,23 +30,23 @@ const ICONS = {
   close: MdiClose,
   external: MdiOpenInNew,
   folder: MdiFolder,
-  /** The expanded half of the pair. Closed is the default everywhere else. */
+  // The expanded half of the pair; `folder` is the closed state everywhere else.
   "folder-open": MdiFolderOutline,
   globe: MdiWeb,
   history: MdiHistory,
   keyboard: MdiKeyboardOutline,
+  minus: MdiMinus,
   "panel-left": MdiDockLeft,
   "panel-right": MdiDockRight,
+  plus: MdiPlus,
   search: MdiMagnify,
   settings: MdiCogOutline,
   trash: MdiTrashCanOutline,
 } as const;
 
-/** Every icon the app may ask for. Lists of icons type their field with this. */
+// Every icon the app may ask for; lists of icons type their field with this.
 export type IconName = keyof typeof ICONS;
 
-/** `IconName` in, component out — no lookup miss is representable, so there is no
- *  "empty box" branch to forget about. */
 export function resolveIcon(name: IconName): Component {
   return ICONS[name];
 }

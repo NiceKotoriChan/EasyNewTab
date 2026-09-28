@@ -1,8 +1,6 @@
 /**
- * Search engine table + suggestion fetching + URL detection.
- *
- * Engines are fixed (not user-editable). GitHub has no public suggestion
- * endpoint, so its `suggestUrl` is omitted and the dropdown stays closed.
+ * Search engine table + suggestion fetching + URL detection. Engines are fixed (not user-editable):
+ * GitHub has no public suggestion endpoint, so its `suggestUrl` is omitted.
  */
 
 interface SearchEngine {
@@ -141,13 +139,7 @@ export function normalizeUrl(str: string): string {
   return /^https?:\/\//i.test(str) ? str : "https://" + str;
 }
 
-/**
- * Fetch autocomplete suggestions. Never caches: results are held only for the
- * lifetime of the dropdown.
- *
- * Aborts are normal (the next keystroke cancels the previous request) and are
- * reported as an empty list rather than an error.
- */
+// Never caches; an aborted fetch (the next keystroke) is reported as an empty list, not an error.
 export async function fetchSuggestions(
   query: string,
   engineId: EngineId,

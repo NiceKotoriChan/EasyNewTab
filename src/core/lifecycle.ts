@@ -28,9 +28,7 @@ export const INITIAL_CONTEXT_HEALTH: ContextHealth = {
 };
 
 interface ContextVerdict {
-  /** Reload the page to pick up a live extension context. */
   heal: boolean;
-  /** State to carry into the next check. */
   next: ContextHealth;
 }
 

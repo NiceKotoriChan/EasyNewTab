@@ -1,17 +1,4 @@
-/**
- * Renders the extension's two pages in their phone shape and saves them as one page you
- * can look at.
- *
- * The mobile adaptation is driven by two media queries, and both are invisible to the
- * headless checks: `render-check.mjs` can prove that a component stops *rendering* the
- * clock, but nothing in a Node process can prove that the search pane ends up *above* the
- * sidebar, because that is a CSS ordering decision. This script renders the same
- * components and puts the result somewhere eyes can reach. The two pages are framed as
- * 390×844 iframes rather than drawn inline, so the width media queries in the shipped CSS
- * are evaluated by a real layout engine instead of being simulated.
- *
- *   node scripts/mobile-preview.mjs   →  dist/mobile-preview.html
- */
+// Renders the pages in their phone shape as 390×844 iframes so a real layout engine evaluates the width media queries headless checks can't.
 
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -25,14 +12,11 @@ import {
 
 const DIST = "dist";
 
-// The size the frames are laid out at. iPhone 14/15 logical pixels — the width
-// the narrow end of the adaptation is designed against, not a round number.
+// iPhone 14/15 logical pixels — the width the narrow end of the adaptation is designed against.
 const PHONE = { width: 390, height: 844 };
 
 installChromeStub();
-// The top-sites row is the noisiest part of the desktop pane and the phone
-// drops it entirely, so the fixture is trimmed rather than its presence being
-// argued about.
+// The phone drops the top-sites row entirely, so the fixture is trimmed rather than arguing over its presence.
 setTopSites([]);
 
 const failures = [];
@@ -56,17 +40,7 @@ function scopedIdsInCss(css) {
   );
 }
 
-/**
- * Drop the guard from `@media (pointer: coarse)` blocks, leaving their rules
- * active.
- *
- * A desktop browser will not report a coarse pointer no matter how narrow the
- * frame is, so the touch rules are the one part of the adaptation an iframe
- * cannot reproduce on its own. They are also the part that only changes
- * measurements — row height, menu and button padding — so forcing them on is a
- * faithful stand-in rather than a redraw. Returns the CSS untouched if the
- * query is not present.
- */
+// Drops the `@media (pointer: coarse)` guard so the touch rules (the only part a desktop iframe can't reproduce) stay active; faithful because they only change measurements.
 function unwrapCoarsePointer(css) {
   const QUERY = /@media\s*\(\s*pointer\s*:\s*coarse\s*\)\s*\{/;
   let out = css;
@@ -74,9 +48,7 @@ function unwrapCoarsePointer(css) {
     const match = QUERY.exec(out);
     if (!match) return out;
 
-    // Brace-match from the block opener to find where the block ends. Nested
-    // at-rules inside are not a thing this stylesheet does, but counting is
-    // still the only way to be sure the block was read to its real end.
+    // Brace-match to the block's real end; counting is the only way to be sure, even though nested at-rules don't occur here.
     let depth = 0;
     let end = -1;
     for (let i = match.index + match[0].length - 1; i < out.length; i += 1) {
@@ -145,8 +117,7 @@ async function readBuiltCss() {
   for (const [owner, parts] of Object.entries(sheets)) {
     if (parts.length === 0) fail(`no ${owner} stylesheet found in ${assets}`);
   }
-  // `base` carries the tokens and the resets and has to come first: the entry
-  // sheets read its custom properties.
+  // `base` carries the tokens/resets and must come first so entry sheets can read its custom properties.
   return {
     newtab: [...sheets.base, ...sheets.newtab].join("\n"),
     options: [...sheets.base, ...sheets.options].join("\n"),
@@ -162,9 +133,7 @@ try {
     "/src/composables/usePlatform.ts",
   );
   const { isCompact, isTouch } = usePlatform();
-  // There is no viewport in this process. Both axes are set directly, which is
-  // the same thing the guardrail does and the only way to render the phone
-  // shape from Node.
+  // No viewport here: both axes are set directly (what the guardrail does) — the only way to render the phone shape from Node.
   isCompact.value = true;
   isTouch.value = true;
 
@@ -179,22 +148,13 @@ try {
     "/src/components/history/HistoryList.vue",
   );
 
-  // The history panel, inside its real chrome with the tab switched to it.
-  // App.vue decides which panel to mount from `activeView`, and it only ever
-  // reads that in `onMounted` — which does not run here, so a rendered `App`
-  // always shows the bookmarks panel. Driving the two components directly is
-  // what makes the history rows visible in the snapshot at all, and the rows are
-  // where the delete button lives.
+  // App.vue only reads `activeView` in onMounted (which doesn't run here), so driving the history + list components directly is what makes the rows appear.
   const HistoryPanel = {
     render: () =>
       h(SidePanel, { active: "history" }, { default: () => h(HistoryList) }),
   };
 
-  // The stores hydrate asynchronously on first use, and the first render is
-  // what starts those reads. Rendering once and looking at it would capture the
-  // `Loading…` frame the panels show for the handful of microtasks it takes the
-  // reads to land — a picture of the app booting, not of the app. So: render to
-  // kick the reads off, let them settle, then render the shape worth looking at.
+  // Stores hydrate async on first render; render once to kick the reads off, let them settle, then render the shape worth capturing (not the Loading… frame).
   await renderToString(createSSRApp(NewTabApp));
   await renderToString(createSSRApp(OptionsApp));
   await renderToString(createSSRApp(HistoryPanel));
@@ -212,14 +172,13 @@ try {
 
   const historyMarkup = await renderToString(createSSRApp(HistoryPanel));
   ok("the history panel renders");
-  if (historyMarkup.includes('aria-label="Remove from history"')) ok("and every row carries its own delete button");
-  else fail("the history rows have no delete button — the snapshot would show rows with no action at all");
+  // This snapshot keeps "read-only on every device" visible: a hover-only affordance looks right on desktop and wrong on a phone with no cursor.
+  if (!historyMarkup.includes('aria-label="Remove from history"')) ok("with no delete button on any row — the panel is read-only");
+  else fail("a history row still carries a delete button");
   if (!historyMarkup.includes('role="menu"')) ok("with no menu rendered alongside them");
   else fail("a context menu is in the history markup");
 
-  // The preview is only worth looking at if it really is the phone shape. A
-  // silent regression back to the desktop shell would otherwise produce a
-  // convincing picture of the wrong thing.
+  // The preview is only worth a look if it really is the phone shape — a silent regression to the desktop shell would be a convincing picture of the wrong thing.
   if (newTabMarkup.includes("is-stacked")) ok("new tab is in the stacked layout");
   else fail("new tab is NOT stacked — the preview would show the desktop shell");
   if (!newTabMarkup.includes('class="sash"')) ok("the divider is gone");
@@ -237,9 +196,7 @@ try {
 console.log("stylesheet");
 const css = await readBuiltCss();
 
-// The check that would have caught the whole reason this script exists: an SSR
-// pass and a production build must agree on every scope hash, or the markup
-// ships attributes no stylesheet matches and the page renders unstyled.
+// The check that justifies this script: SSR and the production build must agree on every scope hash or the page renders unstyled.
 for (const [label, markup, sheet] of [
   ["new tab", pages.newTabMarkup, css.newtab],
   ["settings", pages.optionsMarkup, css.options],

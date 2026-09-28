@@ -1,11 +1,10 @@
 /**
  * The two decisions behind a touch long press.
  *
- * Neither has another witness. A press that arms on the wrong pointer type takes
- * the gesture away from the drag adapter; a slop that is too tight turns a
- * scroll into a menu, and one that is too loose swallows the menu's own
- * dismiss-by-moving. Both failures look like "the menu is flaky" in a browser,
- * which is the report that never gets filed.
+ * Neither has another witness. A press that arms on the wrong pointer type takes the gesture away
+ * from the drag adapter; a slop too tight turns a scroll into a menu, and one too loose swallows the
+ * menu's own dismiss-by-moving. Both look like "the menu is flaky" in a browser — the report that
+ * never gets filed.
  */
 
 import assert from "node:assert/strict";
@@ -19,8 +18,7 @@ import {
 } from "../src/core/gestures.ts";
 
 test("only a finger arms a long press", () => {
-  // A mouse and a pen both have a right button, and the drag adapter is a
-  // mouse gesture — arming on either would put two gestures on one press.
+  // Both have a right button, and the adapter is a mouse gesture — arming would put two on one press.
   assert.equal(isLongPressPointer("touch"), true);
   assert.equal(isLongPressPointer("mouse"), false);
   assert.equal(isLongPressPointer("pen"), false);
@@ -53,9 +51,8 @@ test("past the slop the press is a scroll", () => {
 });
 
 test("the slop is measured per axis, not as a distance", () => {
-  // A diagonal drag of `slop` on each axis is `slop * sqrt(2)` away and still a
-  // press. Measuring the hypotenuse would cancel this gesture, which is the
-  // one a thumb makes when it settles onto a row.
+  // A diagonal drag of `slop` on each axis is `slop * sqrt(2)` away and still a press. Measuring the
+  // hypotenuse would cancel this gesture, which is the one a thumb makes when it settles onto a row.
   const from = { x: 200, y: 300 };
   assert.equal(
     movedBeyondSlop(from, { x: 200 + PRESS_SLOP, y: 300 + PRESS_SLOP }),

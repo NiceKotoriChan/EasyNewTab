@@ -1,11 +1,5 @@
 <script setup lang="ts">
-/**
- * Page favicon with a graceful fallback.
- *
- * Resolution uses Chromium's internal `_favicon` route (served from the local
- * favicon cache via the `favicon` permission), so rendering a list never
- * issues a network request and never leaks the browsing list to a third party.
- */
+// Page favicon with a graceful fallback. Uses Chromium's internal `_favicon` route (the `favicon` permission), so rendering a list never hits the network or leaks the browsing list to a third party.
 import { ref, watch } from "vue";
 import { getFaviconUrl } from "@/core/utils";
 import Icon from "./Icon.vue";

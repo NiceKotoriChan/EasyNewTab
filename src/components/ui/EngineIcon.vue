@@ -1,7 +1,5 @@
 <script setup lang="ts">
-/**
- * Brand marks for the search engines — inline SVG, zero network round trips.
- */
+// Hand-drawn brand marks for the search engines, inline SVG (not MDI icons). `engine-mark` is the class the render check excludes from its icon scan.
 import { computed } from "vue";
 import type { EngineId } from "@/core/engines";
 

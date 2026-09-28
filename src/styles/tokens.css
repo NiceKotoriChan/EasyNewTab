@@ -1,19 +1,14 @@
-/* ============================================================
-   Design tokens.
-   Light and dark are the same shape: one flat canvas with panes the same
-   colour as it, separated by 1px rules rather than by elevation, and soft blue
-   for highlights. Every component consumes these by name so the two themes
-   never drift apart.
-   ============================================================ */
+/* Design tokens. Light and dark are the same shape: one flat canvas with panes the same colour as
+   it, separated by 1px rules rather than elevation. Every component consumes these by name so the
+   two themes never drift apart. */
 
 :root {
   color-scheme: light dark;
 
   /* Surfaces */
   --surface: #ffffff; /* panes, popovers, inputs */
-  /* The page is the same colour as the panes, so nothing floats: regions are
-     told apart by a 1px line, not by a raised background. Aliased rather than
-     repeated so it follows the dark block below, the way `--icon-folder` does. */
+  /* The page is the same colour as the panes, so nothing floats: regions are told apart by a 1px
+     line, not by elevation. Aliased so it follows the dark block below. */
   --app-bg: var(--surface);
   --inset: #f0f1f5; /* segmented-control track, chip backgrounds */
   --border: #e8eaef;
@@ -21,11 +16,9 @@
   --hover-bg: #f2f4f8;
   --input-bg: #ffffff;
   --overlay-bg: rgba(18, 21, 27, 0.34);
-  /* Chromium's new tab shortcuts: the favicon sits on a filled circle, and the
-     whole 112px tile washes to a translucent grey on hover. Two tokens rather
-     than literals in the component because both are theme-dependent, and the
-     values are Chromium's own (`rgb(229, 231, 232)` and `rgba(grey-900, .1)`)
-     so the row matches the page it is modelled on. */
+  /* Chromium's new tab shortcuts: the favicon sits on a filled circle, and the whole 112px tile
+     washes to a translucent grey on hover. Tokens rather than literals because both are
+     theme-dependent, and the values are Chromium's own, so the row matches the page it models. */
   --tile-bg: #e5e7e8;
   --tile-hover: rgba(27, 31, 39, 0.1);
 
@@ -112,19 +105,13 @@
   }
 }
 
-/* ============================================================
-   Pointer metrics.
+/* Pointer metrics. A finger wants a bigger target than a cursor, and the list rows are the densest
+   tap targets in the app. Asking about the pointer rather than the window is the point: a narrow
+   desktop window keeps its mouse and its 28px rows, and a phone gets rows it can hit — which also
+   leaves the long press more room before its 10px of tolerance crosses into the next row.
 
-   A finger wants a bigger target than a cursor does, and the list rows are the
-   densest tap targets in the app. Asking about the pointer rather than the
-   window is the point: a narrow desktop window keeps its mouse and its 28px
-   rows, and a phone gets rows it can hit — which also leaves the long press more
-   room before its 10px of tolerance is spent crossing into the next row.
-
-   The two overlays are teleported to `body` and so do not inherit from any
-   component's subtree, which is why this lives here rather than beside the shell
-   that renders them.
-   ============================================================ */
+   The two overlays are teleported to `body` and so do not inherit from any component's subtree —
+   hence this lives here rather than beside the shell that renders them. */
 @media (pointer: coarse) {
   :root {
     --row-h: 38px;

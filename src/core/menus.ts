@@ -21,7 +21,7 @@ export function folderMenu(): MenuItem[] {
   ];
 }
 
-/** The blank space under the tree. */
+// The blank space under the tree — the only way to make a top-level folder.
 export function emptyTreeMenu(): MenuItem[] {
   return [{ label: "New", action: "new" }];
 }

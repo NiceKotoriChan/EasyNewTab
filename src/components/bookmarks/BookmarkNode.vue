@@ -1,15 +1,5 @@
 <script setup lang="ts">
-/**
- * One bookmark row + its children (recursive).
- *
- * One click is the whole gesture — a bookmark opens, a folder folds (see
- * `resolveRowActivation`). No double click and no selection: clicking the sidebar must
- * never take the main area away from the search box. Expansion and the drop state come
- * from the tree context, and row height is a fixed `--row-h` so the drop-zone maths
- * stays predictable. The row carries no drag logic: it hands its element to the tree on
- * mount and reports hover / leave / dwell / drag events back — all of that lives in
- * `src/dnd/tree.ts`.
- */
+// One bookmark row + its children (recursive). One click is the whole gesture; row height is a fixed `--row-h` so the drop-zone maths stays predictable. Drag logic lives in `src/dnd/tree.ts`.
 import { computed, inject, onBeforeUnmount, onMounted, ref } from "vue";
 import Icon from "../ui/Icon.vue";
 import Favicon from "../ui/Favicon.vue";
@@ -33,19 +23,14 @@ const isDropInside = computed(
     ctx.dropTarget.value.position === "inside",
 );
 
-/** Mirrored into `data-action` so the click contract is visible to the render check. */
+// Mirrored into `data-action` so the click contract is visible to the render check.
 const activation = computed(() => resolveRowActivation(props.node));
 
 const showChildren = computed(
   () => isFolder.value && hasChildren.value && expanded.value,
 );
 
-/**
- * Solid when shut, hollow when open — the pair the pre-rewrite build used.
- * Guarded by `hasChildren` rather than `expanded` alone: an empty folder is
- * still put into `expandedIds` by the first-load sweep, and it has nothing to
- * reveal, so it must not advertise itself as open.
- */
+// Solid when shut, hollow when open. Guarded by `hasChildren`: an empty folder still lands in `expandedIds` on first load but has nothing to reveal.
 const folderIcon = computed<"folder" | "folder-open">(() =>
   showChildren.value ? "folder-open" : "folder",
 );
@@ -56,8 +41,7 @@ onMounted(() => {
   const el = row.value;
   if (!el) return;
   unregister = ctx.registerRow(el, {
-    // Read lazily: the node object behind this row is replaced on every reload,
-    // while the registration lives as long as the element does.
+    // Read lazily: the node object is replaced on every reload, but the registration lives as long as the element does.
     data: () => ({
       id: props.node.id,
       kind: isFolder.value ? "folder" : "bookmark",
@@ -123,11 +107,7 @@ onBeforeUnmount(() => {
 
       <span class="label">{{ props.node.title || props.node.url }}</span>
 
-      <!-- The row's only delete. Folders are deliberately not offered one:
-           removing a branch of the tree should not be one stray click away. It
-           is also why the folder menu's Delete is the confirmed one, and this
-           is not — what can be reached by accident has to be the smaller
-           thing. -->
+      <!-- The row's only delete. Folders get no inline delete — removing a branch shouldn't be one stray click away. -->
       <button
         v-if="!isFolder"
         type="button"
@@ -170,10 +150,7 @@ onBeforeUnmount(() => {
   background: var(--hover-bg);
 }
 
-/* The node is going *into* this folder, which is a different outcome from the
-   line drawn between rows. So it is a full-row fill rather than a thinner
-   version of the same signal — a hairline was too easy to miss and left the
-   user unsure which of the two they were about to get. */
+/* Going *into* the folder is a different outcome from the line between rows, so it's a full-row fill — a hairline was too easy to miss. */
 .row.is-drop-inside {
   background: var(--accent-soft);
   color: var(--selection-fg);
@@ -185,8 +162,7 @@ onBeforeUnmount(() => {
   color: inherit;
 }
 
-/* Refuses the drop: the dragged node itself, or somewhere inside it. The
-   cursor says the same thing — `canDrop()` returns false for these rows. */
+/* Refuses the drop: the dragged node itself, or somewhere inside it. The cursor echoes `canDrop()` returning false. */
 .row.is-blocked {
   opacity: 0.4;
 }
@@ -221,9 +197,7 @@ onBeforeUnmount(() => {
   flex: none;
 }
 
-/* The one tinted glyph in the app (see `--icon-folder`). It goes back to
-   `inherit` on a selected or drop-inside row, where the row's own colour — not
-   a second blue — is the signal. */
+/* The one tinted glyph in the app (see `--icon-folder`); it returns to `inherit` on a selected/drop-inside row, where the row's own colour is the signal. */
 .lead.is-folder {
   color: var(--icon-folder);
 }
@@ -231,8 +205,7 @@ onBeforeUnmount(() => {
 .label {
   flex: 1;
   min-width: 0;
-  /* 14px to match the history panel's row label: the two panels are siblings in
-     the same column, so a different size in each reads as a bug. */
+  /* 14px to match the history panel's row label; the two panels share a column, so a differing size reads as a bug. */
   font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
@@ -258,9 +231,7 @@ onBeforeUnmount(() => {
   color: var(--danger);
 }
 
-/* A cursor reveals the button on hover; a finger has no hover, so there it is
-   simply always there. Without this the row would have no delete at all on a
-   touchscreen, because the button is the only one it has. */
+/* A cursor reveals the button on hover; a finger has no hover, so on touch it's simply always there. */
 @media (pointer: coarse) {
   .remove {
     display: grid;

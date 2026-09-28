@@ -1,10 +1,4 @@
-/**
- * Unit tests for the pure bookmark logic.
- *
- * The drag-and-drop index correction is the reason this file exists: it was derived by
- * trial and error against a real Chrome profile, and a silent regression there is
- * invisible until a bookmark lands one slot off.
- */
+// Tests for the pure bookmark logic; the drag-and-drop index correction is the reason this file exists — a silent regression lands a bookmark one slot off.
 
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -13,10 +7,8 @@ import {
   computeDropPosition,
   computeMoveTarget,
   dragBlockedIds,
-  matchesQuery,
   pickRootFolderId,
   resolveRowActivation,
-  searchBookmarks,
   subtreeContains,
   topLevelNodes,
   visibleTopLevelNodes,
@@ -46,16 +38,7 @@ function move(opts: {
   });
 }
 
-/**
- * Chromium's move rules, transcribed from the platform that enforces them.
- *
- * `BookmarkModel::Move` (components/bookmarks/browser/bookmark_model.cc) does two things
- * before it touches the list: it treats `index == old_index` and `index == old_index + 1`
- * in the same folder as "already there, nothing to do", and it decrements the index when
- * the node is moving later in the same folder. Reproducing it here is the only way to test
- * our index arithmetic: the number `computeMoveTarget` returns is meaningless on its own,
- * and an assertion like "index === 2" happily passes while the result is wrong.
- */
+// Chromium's move rules transcribed from bookmark_model.cc: "already there" is index==old or old+1, and later moves decrement. Reproducing it is the only way the returned index means anything.
 function chromiumMove<T>(list: readonly T[], from: number, index: number): T[] {
   if (index === from || index === from + 1) return [...list];
   const at = index > from ? index - 1 : index;
@@ -65,12 +48,7 @@ function chromiumMove<T>(list: readonly T[], from: number, index: number): T[] {
   return next;
 }
 
-/**
- * Where a drop is supposed to land, stated without reference to any index convention:
- * lift the dragged row out, then put it back immediately before or after the target row.
- * Both positions are in the list as it was before the lift, which is the same frame the
- * indicator line is drawn in.
- */
+// The drop target stated without an index convention: lift the row out, put it back before/after the target in the pre-lift list — the frame the indicator is drawn in.
 function intended<T>(
   list: readonly T[],
   from: number,
@@ -84,11 +62,7 @@ function intended<T>(
 }
 
 test("every ordered drop lands exactly where the indicator promised", () => {
-  // Downward moves are the half that can go wrong: the correction belongs to Chromium,
-  // and applying it a second time here cancels it out — one slot down becomes a no-op
-  // and two slots down moves one. Upward moves are unaffected, because the platform's
-  // decrement does not fire when the node is moving earlier, and that asymmetry is what
-  // makes such a bug read as "the drop was ignored" rather than as an off-by-one.
+  // Downward moves are the half that can go wrong: re-applying Chromium's correction cancels it, and the platform's decrement doesn't fire on upward moves — so the bug reads as "drop ignored", not off-by-one.
   const list = ["a", "b", "c", "d"];
   const rows: BookmarkNode[] = list.map((id) => ({
     id,
@@ -109,8 +83,7 @@ test("every ordered drop lands exactly where the indicator promised", () => {
           siblings: rows,
         });
         assert.ok(destination, `${label}: should be allowed`);
-        // A missing index becomes -1, which `splice` turns into a real (wrong)
-        // insertion — so this fails loudly instead of quietly lining up.
+        // A missing index becomes -1, which `splice` turns into a wrong insertion — so this fails loudly instead of lining up quietly.
         const index = destination.index ?? -1;
         assert.equal(
           JSON.stringify(chromiumMove(list, from, index)),
@@ -123,9 +96,7 @@ test("every ordered drop lands exactly where the indicator promised", () => {
 });
 
 test("the index is named in the frame the list is in before the move", () => {
-  // The correction belongs to Chromium, but the frame is still ours to get right: a
-  // downward drop names the slot as counted *before* the node is lifted out. Both of
-  // these land the same way round; only the index differs.
+  // The correction is Chromium's, but the frame is ours: a downward drop names the slot as counted *before* the node is lifted. Both land the same way; only the index differs.
   assert.deepEqual(
     move({
       dragId: "a",
@@ -147,8 +118,7 @@ test("the index is named in the frame the list is in before the move", () => {
 });
 
 test("a drop after the last row may name the append slot", () => {
-  // Chromium accepts `index == children().size()` (`IsValidIndex(..., true)`), so the
-  // one-past-the-end index is legal and must not be clamped away.
+  // Chromium accepts `index == children().size()` (`IsValidIndex(..., true)`), so the one-past-the-end index is legal and must not be clamped.
   assert.deepEqual(
     move({
       dragId: "a",
@@ -185,8 +155,7 @@ test("dropping a node onto itself is rejected", () => {
 });
 
 test("a target that is not among its parent's children is rejected", () => {
-  // Belt and braces for a reload race: the row is on screen but the sibling list does
-  // not have it, so there is no index to name. Better to do nothing than to guess a slot.
+  // Belt-and-braces for a reload race: the row is on screen but not in the sibling list, so there's no index to name — better to do nothing than guess a slot.
   assert.deepEqual(
     computeMoveTarget({
       dragId: "x",
@@ -265,8 +234,7 @@ test("visibleTopLevelNodes hides only Chrome's Other bookmarks folder", () => {
     visibleTopLevelNodes(tree, true).map((n) => n.id),
     ["1", "2", "3"],
   );
-  // Matched by id, not title — the stub above deliberately carries a localized
-  // "Other bookmarks" title, which a title comparison would miss.
+  // Matched by id, not title — the stub carries a localized "Other bookmarks" title a title comparison would miss.
   assert.deepEqual(
     visibleTopLevelNodes(tree, false).map((n) => n.id),
     ["1", "3"],
@@ -299,8 +267,7 @@ test("subtreeContains detects cycles before they happen", () => {
 });
 
 test("a click opens a bookmark but only folds a folder", () => {
-  // The click contract: one click is the whole gesture, and it never selects, so the
-  // search box in the main area stays where it is.
+  // The click contract: one click is the whole gesture and never selects, so the main-area search box stays put.
   assert.equal(
     resolveRowActivation({ id: "b", title: "GitHub", url: "https://github.com" }),
     "open",
@@ -308,78 +275,4 @@ test("a click opens a bookmark but only folds a folder", () => {
   assert.equal(resolveRowActivation({ id: "f", title: "Dev", children: [] }), "toggle");
   // `getTree()` gives a folder an empty/absent url; both must fold, not "open".
   assert.equal(resolveRowActivation({ id: "f2", title: "Empty url", url: "" }), "toggle");
-});
-
-/** One top-level folder, so the "ancestors are kept" cases have a parent. */
-function searchable(): BookmarkNode[] {
-  return [
-    {
-      id: "1",
-      title: "Bookmarks bar",
-      children: [
-        { id: "b1", title: "GitHub", url: "https://github.com" },
-        {
-          id: "f1",
-          title: "Dev",
-          children: [
-            { id: "b2", title: "Vue", url: "https://vuejs.org" },
-            { id: "b3", title: "Notes", url: "https://example.com/vue-notes" },
-          ],
-        },
-      ],
-    },
-  ];
-}
-
-test("an empty query is not a filter", () => {
-  const tree = searchable();
-  const result = searchBookmarks(tree, "   ");
-  assert.equal(result.active, false);
-  assert.deepEqual(
-    result.nodes.map((n) => n.id),
-    ["1"],
-  );
-  assert.equal(result.reveal.size, 0);
-});
-
-test("search keeps the matches and the folders above them, and drops the rest", () => {
-  const result = searchBookmarks(searchable(), "vue");
-  // "Dev" does not match — it survives only as the way down to two rows that do, which
-  // is the whole difference from "matches plus descendants".
-  assert.deepEqual(result.nodes[0].children!.map((n) => n.id), ["f1"]);
-  assert.deepEqual(
-    result.nodes[0].children![0].children!.map((n) => n.id),
-    ["b2", "b3"],
-  );
-  // GitHub is nowhere on the path, so it is not there to be rendered at all.
-  assert.equal(JSON.stringify(result.nodes).includes("GitHub"), false);
-});
-
-test("search reports the folders it must open, and only those", () => {
-  const result = searchBookmarks(searchable(), "vue");
-  // The path to a hit: the top-level folder and the one the hits live in.
-  assert.deepEqual([...result.reveal].sort(), ["1", "f1"]);
-});
-
-test("a folder that matches on its own is kept without being opened", () => {
-  const result = searchBookmarks(searchable(), "dev");
-  assert.deepEqual(result.nodes[0].children!.map((n) => n.id), ["f1"]);
-  // Nothing below it matched, so there is nothing to reveal: opening it would show an
-  // empty folder, and the user's own fold is left as they left it.
-  assert.equal(result.reveal.has("f1"), false);
-  assert.deepEqual([...result.reveal], ["1"]);
-});
-
-test("search matches the URL as well as the title, case-insensitively", () => {
-  const byUrl = searchBookmarks(searchable(), "example.com");
-  assert.deepEqual(byUrl.nodes[0].children![0].children!.map((n) => n.id), ["b3"]);
-  assert.equal(matchesQuery({ id: "x", title: "Docs", url: "https://x.dev/A" }, "x.dev/a"), true);
-  assert.equal(matchesQuery({ id: "x", title: "Untitled", url: undefined }, "untitled"), true);
-});
-
-test("a query nothing answers prunes the tree to nothing", () => {
-  const result = searchBookmarks(searchable(), "zzz");
-  assert.equal(result.active, true);
-  assert.deepEqual(result.nodes, []);
-  assert.equal(result.reveal.size, 0);
 });

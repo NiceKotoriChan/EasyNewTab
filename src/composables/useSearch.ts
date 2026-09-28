@@ -102,8 +102,7 @@ export function useSearch(): UseSearch {
   }
 
   function openNewTab(url: string): void {
-    // Always a new tab — the new tab page itself must stay put. The preference
-    // that governs the sidebar and the tiles deliberately does not reach here.
+    // Always a new tab: the new tab page itself must stay put (the sidebar preference doesn't reach here).
     void chrome.tabs.create({ url });
   }
 

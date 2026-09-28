@@ -18,7 +18,6 @@ export function isLongPressPointer(pointerType: string): boolean {
   return pointerType === "touch";
 }
 
-/** Whether the pointer has travelled far enough to stop being a press. */
 export function movedBeyondSlop(
   from: { x: number; y: number },
   to: { x: number; y: number },

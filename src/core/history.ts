@@ -1,4 +1,5 @@
-/** History list logic — pure functions only. */
+// Pure. chrome.history.search returns one flat newest-first array — no day bucketing,
+// since a Today/Earlier split would be ours to invent.
 
 import { UI_LOCALE } from "./utils.ts";
 
@@ -11,45 +12,10 @@ export interface HistoryItemLike {
   typedCount?: number;
 }
 
-export interface HistoryGroup<T extends HistoryItemLike = HistoryItemLike> {
-  /** Stable key for `v-for`. */
-  key: "today" | "yesterday" | "earlier";
-  label: string;
-  items: T[];
-}
-
 function startOfDay(timestamp: number): number {
   const d = new Date(timestamp);
   d.setHours(0, 0, 0, 0);
   return d.getTime();
-}
-
-/** Local-midnight label buckets: Today / Yesterday / Earlier. */
-export function groupHistory<T extends HistoryItemLike>(
-  items: readonly T[],
-  now: number = Date.now(),
-): HistoryGroup<T>[] {
-  const todayStart = startOfDay(now);
-  const yesterdayStart = todayStart - 86_400_000;
-
-  const today: T[] = [];
-  const yesterday: T[] = [];
-  const earlier: T[] = [];
-
-  for (const item of items) {
-    const t = item.lastVisitTime ?? 0;
-    if (t >= todayStart) today.push(item);
-    else if (t >= yesterdayStart) yesterday.push(item);
-    else earlier.push(item);
-  }
-
-  return (
-    [
-      { key: "today", label: "Today", items: today },
-      { key: "yesterday", label: "Yesterday", items: yesterday },
-      { key: "earlier", label: "Earlier", items: earlier },
-    ] as HistoryGroup<T>[]
-  ).filter((g) => g.items.length > 0);
 }
 
 /** "14:32" for today, "Sep 25" for anything older. */

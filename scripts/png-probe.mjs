@@ -1,15 +1,4 @@
-/**
- * Just enough PNG to sample pixels, for the two places that need to.
- *
- * `make-app-icons.mjs` checks what it is about to overwrite the shipped icons with, and
- * `render-check.mjs` checks the committed files. Both need real pixels: dimensions alone
- * cannot tell the mark from a blank square of the same size, which is exactly the
- * failure that would go unnoticed — the old icon was also a 128px PNG.
- *
- * Decoding here rather than reaching for image tooling keeps the guardrail inside
- * `npm run check`, which has no browser and no dependencies. `zlib` is already in Node,
- * and an 8-bit RGBA scanline is four bytes per pixel behind one filter byte.
- */
+// Just enough PNG decoding to sample real pixels — `zlib` is in Node, so the guardrail needs no browser.
 
 import { inflateSync } from "node:zlib";
 
@@ -39,9 +28,7 @@ function unfilter(type, row, up, bpp) {
   }
 }
 
-/**
- * `{ width, height, at(x, y) }`, where `at` returns `[r, g, b, a]` at 0–255.
- */
+// Returns `{ width, height, at(x, y) }`, where `at` gives `[r, g, b, a]` at 0–255.
 export function readPng(buffer) {
   if (!buffer.subarray(0, 8).equals(SIGNATURE)) throw new Error("not a PNG");
 

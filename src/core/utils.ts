@@ -47,24 +47,19 @@ export function getFaviconUrl(url: string | undefined, size = 32): string {
   );
 }
 
-/** Open a page from a click, honouring the `openInNewTab` preference. Unset counts as
- *  *on*: the preference arrives from storage after the first paint, and a click that
- *  lands before it does should not navigate this page away from itself. Every place a
- *  click can open a link goes through here, so the rule has one home and the tiles, the
- *  tree and the history list cannot drift apart. */
+/** Open a page from a click, honouring the `openInNewTab` preference. Unset counts as *on*: the
+ *  preference arrives from storage after the first paint, and a click landing before it does should
+ *  not navigate this page away from itself. Every place a click can open a link goes through here,
+ *  so the rule has one home. */
 export function openUrl(url: string, openInNewTab: boolean | undefined): void {
   if (openInNewTab === false) void chrome.tabs.update({ url });
   else void chrome.tabs.create({ url });
 }
 
-/** The one locale the interface is written in. Every `Intl` call passes this explicitly
- *  rather than leaving the locale `undefined`: the extension ships no translations (no
- *  `_locales`, no `chrome.i18n`, no `default_locale`), so reading the browser's locale
- *  would translate nothing — it would only let a handful of strings change shape
- *  depending on who opened the page, and it would make the output unassertable. */
+// Hardcoded: the extension ships no translations, so a browser locale would only make
+// output unassertable. Every Intl call passes this explicitly.
 export const UI_LOCALE = "en-US";
 
-/** HH:MM, 24h, zero-padded. */
 export function formatTime(date: Date): string {
   const h = date.getHours().toString().padStart(2, "0");
   const m = date.getMinutes().toString().padStart(2, "0");

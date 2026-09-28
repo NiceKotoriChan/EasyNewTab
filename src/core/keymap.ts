@@ -9,9 +9,6 @@ type ShortcutAction =
   | "show-bookmarks"
   | "show-history"
   | "focus-search"
-  | "search-bookmarks"
-  /** Escape. What it unwinds is the shell's business, not this function's. */
-  | "dismiss"
   | null;
 
 export interface KeyEventLike {
@@ -23,22 +20,16 @@ export interface KeyEventLike {
   typing: boolean;
 }
 
-/** Resolve a keystroke, or `null` for every key the shell does not answer to.
- *  Escape is checked first and regardless of focus — the one key that has to reach
- *  the shell from inside a text field. Everything else is a *character* first and a
- *  shortcut second, so it sits behind `typing`; and nothing is bound with a
- *  modifier, so `Ctrl+P` stays the browser's print dialog rather than opening the
- *  bookmark search. */
+// Character shortcuts only, gated behind `typing`; no modifier (so Ctrl+S stays the
+// browser's). Escape is unbound: it only unwound the deleted bookmarks filter, which a
+// text field handles itself.
 export function resolveShortcut(event: KeyEventLike): ShortcutAction {
   const mod = event.ctrlKey === true || event.metaKey === true;
   const key = event.key.toLowerCase();
 
-  if (key === "escape") return "dismiss";
-
   if (mod || event.typing) return null;
 
   if (event.key === "/") return "focus-search";
-  if (key === "p") return "search-bookmarks";
   if (key === "s") return "toggle-sidebar";
   if (key === "b") return "show-bookmarks";
   if (key === "h") return "show-history";

@@ -1,6 +1,5 @@
 <script setup lang="ts">
-/** Modal confirmation for a destructive action — deleting a folder, say. Focus lands on
- *  the confirm button, and Escape cancels. */
+// Modal confirmation for a destructive action. Focus lands on the confirm button; Escape cancels.
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 const props = withDefaults(

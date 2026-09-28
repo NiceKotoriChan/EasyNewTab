@@ -13,15 +13,11 @@ interface Shortcut {
 
 export const SHORTCUTS: readonly Shortcut[] = [
   // No modifiers, deliberately: `Ctrl+1`/`Ctrl+2` are the browser's "go to tab N". Every
-  // key here is a character first, so none fire while the caret is in a text field — which
-  // is what the `Esc` row is for.
+  // key here is a character first, so none of them fire while the caret is in a text
+  // field — leaving a field is the field's own Escape, which is not a shell binding and
+  // so is not listed here.
   { keys: "/", label: "Focus the search bar" },
-  { keys: "p", label: "Search bookmarks" },
   { keys: "s", label: "Show or hide the sidebar" },
   { keys: "b", label: "Switch to the bookmarks panel" },
   { keys: "h", label: "Switch to the history panel" },
-  {
-    keys: "Esc",
-    label: "Clear the search box, then leave it",
-  },
 ];

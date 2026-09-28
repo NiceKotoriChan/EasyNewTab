@@ -1,28 +1,23 @@
 <script setup lang="ts">
 /**
- * Settings page. Since the new tab page has no gear button, this is the only place
- * preferences can be changed.
- *
- * Three sections and nothing above them — no title bar, no name, no settings chip, so
- * the page opens on the first control. The split is the point: **General** is the
- * behaviour toggles, **Layout** keeps the docking side to itself, and **Shortcuts**
- * documents the keys. The last two are each dropped on the axis that makes them useless
- * — Layout while the window is narrow (stacked, there is no column to dock into) and
- * Shortcuts on a touch device (a list of keys nothing there can press is worse than no
- * list). General is always there. No Save button (every control writes on change) and no
- * prose. The engine picker is absent on purpose: the row under the new tab page's search
- * box is authoritative. `lastError` drives the alert strip — without it a write that did
- * not land looks like one that did.
+ * Settings page — the only place preferences can be changed; the new tab page has no gear button.
+ * Three sections, nothing above them, and every control writes on change: no Save button, no prose.
+ * Layout and Shortcuts each drop on the axis that makes them useless (stacked there is no column to
+ * dock into; a touch device has no keyboard). `lastError` drives the alert strip, without which a
+ * write that did not land looks like one that did.
  */
 import Icon from "../components/ui/Icon.vue";
 import type { IconName } from "../components/ui/mdi-icons";
 import { useSettings } from "../composables/useSettings";
 import { usePlatform } from "../composables/usePlatform";
 import { SHORTCUTS } from "./shortcuts";
-import type { SidebarPosition } from "@/core/settings";
+import {
+  HISTORY_LIMIT_MAX,
+  HISTORY_LIMIT_MIN,
+  type SidebarPosition,
+} from "@/core/settings";
 
-// `icon` is `IconName`, not `string`: an icon typo would otherwise render an
-// empty box that nobody notices until they look at it.
+// `icon` is `IconName`, not `string`: a typo would render an empty box nobody notices.
 const POSITIONS: Array<{
   id: SidebarPosition;
   label: string;
@@ -34,6 +29,9 @@ const POSITIONS: Array<{
 
 const { settings, ready, lastError, update } = useSettings();
 const { isCompact, isTouch } = usePlatform();
+
+/** The stepper's nudge — the same 50 as the floor, so the whole 50–1000 range is twenty presses. */
+const HISTORY_STEP = 50;
 
 function onOpenInNewTabChange(event: Event): void {
   void update({ openInNewTab: (event.target as HTMLInputElement).checked });
@@ -49,6 +47,12 @@ function setSidebarPosition(id: SidebarPosition): void {
   if (id === settings.value.sidebarPosition) return;
   void update({ sidebarPosition: id });
 }
+
+/** The buttons land on the same bounds `normalizeSettings` clamps to, so neither can write a value
+ *  storage would refuse — and with no text field there is no half-typed number to reconcile. */
+function stepHistoryLimit(direction: 1 | -1): void {
+  void update({ historyLimit: settings.value.historyLimit + direction * HISTORY_STEP });
+}
 </script>
 
 <template>
@@ -57,8 +61,8 @@ function setSidebarPosition(id: SidebarPosition): void {
       <div v-if="!ready" class="pane-empty">Loading…</div>
 
       <template v-else>
-        <!-- A write that failed has already been rolled back, so the controls
-             above this strip are showing the truth. This only has to say why. -->
+        <!-- A failed write is already rolled back, so the controls above are showing the
+             truth. This only has to say why. -->
         <div v-if="lastError" class="failed" role="alert">
           <Icon name="alert" :size="15" />
           <div class="failed-text">
@@ -107,13 +111,44 @@ function setSidebarPosition(id: SidebarPosition): void {
                 />
               </div>
             </div>
+
+            <!-- The only row in General that is not a yes/no. It is also the whole bound
+                 on the history panel: the list asks Chrome for exactly this many entries. -->
+            <div class="row">
+              <div class="row-text">
+                <div class="row-label">History entries</div>
+              </div>
+              <div class="row-control">
+                <!-- Increase on the left, decrease on the right — flagged because the
+                     `[− value +]` order is the more common one, and this row is not that. -->
+                <div class="stepper" role="group" aria-label="History entries">
+                  <button
+                    type="button"
+                    class="step"
+                    aria-label="More history entries"
+                    :disabled="settings.historyLimit >= HISTORY_LIMIT_MAX"
+                    @click="stepHistoryLimit(1)"
+                  >
+                    <Icon name="plus" :size="15" />
+                  </button>
+                  <output class="value" aria-live="polite">{{ settings.historyLimit }}</output>
+                  <button
+                    type="button"
+                    class="step"
+                    aria-label="Fewer history entries"
+                    :disabled="settings.historyLimit <= HISTORY_LIMIT_MIN"
+                    @click="stepHistoryLimit(-1)"
+                  >
+                    <Icon name="minus" :size="15" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
-        <!-- Its own section rather than a third row under General: it is the one
-             setting about the shell itself. Dropped while the window is narrow,
-             because stacked there is no column to dock into and the control would
-             change nothing on this window — widening brings it back. -->
+        <!-- Its own section because it is the one setting about the shell rather than
+             about bookmarks. -->
         <section v-if="!isCompact" class="panel">
           <div class="panel-head">
             <span class="panel-mark"><Icon name="panel-left" :size="15" /></span>
@@ -147,9 +182,6 @@ function setSidebarPosition(id: SidebarPosition): void {
           </div>
         </section>
 
-        <!-- Absent rather than merely unhelpful on a touch device: the list
-             exists to document keys, and there is no keyboard to press them
-             with. -->
         <section v-if="!isTouch" class="panel">
           <div class="panel-head">
             <span class="panel-mark"><Icon name="keyboard" :size="15" /></span>
@@ -177,18 +209,14 @@ function setSidebarPosition(id: SidebarPosition): void {
   background: var(--app-bg);
 }
 
-/* One column, capped, with no panel drawn round it — the page is the panel. A row
-   is a label on the left and a control on the right, so on a 1600px window an
-   uncapped column would turn the distance between the two into a foot of empty
-   space. */
+/* One capped column, no panel drawn round it — the page is the panel. */
 .content {
   width: 100%;
   max-width: 660px;
   padding: 26px 30px 30px;
 }
 
-/* A rule does the separating, with air on both sides of it. The first section has
-   none above it: it is the top of the page. */
+/* A rule separates the sections, with air on both sides. */
 .panel + .panel {
   margin-top: 22px;
   padding-top: 22px;
@@ -221,17 +249,15 @@ function setSidebarPosition(id: SidebarPosition): void {
   color: var(--text);
 }
 
-/* Rows live in one outlined container rather than sitting bare on the page: the
-   outline is what says "these belong together", and it gives the hover wash
-   somewhere to stop. Square, like every other region — the radius is reserved for
-   the controls inside it. */
+/* One outlined container per section: the outline says "these belong together". Square,
+   like every other region — the radius is reserved for the controls inside it. */
 .group {
   background: var(--surface);
   border: 1px solid var(--border);
   overflow: hidden;
 }
 
-/* Only rendered when a write actually failed, so it is allowed to be loud. */
+/* Only rendered when a write failed, so it is allowed to be loud. */
 .failed {
   display: flex;
   gap: 10px;
@@ -301,8 +327,7 @@ function setSidebarPosition(id: SidebarPosition): void {
   flex: none;
 }
 
-/* The checkbox is only the state; the visible control is the track and the knob
-   drawn on top of it. */
+/* The checkbox is only the state; the visible control is the track and knob on top of it. */
 .checkbox {
   position: relative;
   flex: none;
@@ -341,9 +366,52 @@ function setSidebarPosition(id: SidebarPosition): void {
   transform: translateX(15px);
 }
 
-/* Two-option segmented control: the same "inset track + raised pill" language
-   the new tab page's engine row uses, so a setting with two choices reads the
-   same wherever it shows up. */
+/* Stepper: the same "inset track, raised pill" language as the segmented control, so a row set by a
+   number reads like a row set by a choice. The value is tabular and centred, so it does not shuffle
+   sideways as the buttons move it. */
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: var(--inset);
+  border-radius: var(--radius-md);
+}
+
+.step {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  transition:
+    background var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.step:hover:not(:disabled) {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow-xs);
+}
+
+.step:disabled {
+  color: var(--text-muted);
+  opacity: 0.45;
+  cursor: default;
+}
+
+.value {
+  min-width: 56px;
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* Two-option segmented control: the same "inset track + raised pill" language the engine row uses. */
 .seg {
   display: inline-flex;
   gap: 3px;
@@ -374,8 +442,7 @@ function setSidebarPosition(id: SidebarPosition): void {
   box-shadow: var(--shadow-xs);
 }
 
-/* A key column and a description column, so every description starts at the
-   same x even though the keys are one to three characters wide. */
+/* A key column and a description column, so every description starts at the same x. */
 .shortcut {
   display: grid;
   grid-template-columns: 78px 1fr;
@@ -395,8 +462,7 @@ function setSidebarPosition(id: SidebarPosition): void {
   background: var(--hover-bg);
 }
 
-/* Keycap: set in the mono face, sized to its own label, and given one extra
-   pixel of bottom border so it reads as something you press. */
+/* Keycap: sized to its own label, one extra pixel of bottom border so it reads as something you press. */
 kbd {
   justify-self: start;
   min-width: 30px;
@@ -413,11 +479,8 @@ kbd {
   box-shadow: var(--shadow-xs);
 }
 
-/* Narrow, the column is most of the window rather than a column inside it, so its
-   own padding and the rows' is what has to give. The label may wrap; the
-   control keeps its size, because a switch that shrank with the window would be
-   the one thing on the page that got harder to hit on the device that has the
-   least room to aim with. */
+/* Narrow, the column is most of the window; the label may wrap but the controls keep their size — a
+   switch that shrank with the window would be hardest to hit on the device with least room to aim. */
 @media (max-width: 720px) {
   .content {
     padding: 18px 16px 20px;

@@ -1,9 +1,5 @@
-/**
- * Most-visited sites, for the welcome pane's shortcut row.
- *
- * Loaded once per page: a new tab is a fresh instance every time, so "once per
- * page load" already is "as fresh as this data gets".
- */
+// Most-visited sites for the welcome pane's shortcut row. Loaded once per page (a fresh
+// instance each new tab, so once-per-load is already as fresh as it gets).
 import { ref, type Ref } from "vue";
 import { selectTopSites, type TopSite } from "@/core/topSites";
 
@@ -23,7 +19,7 @@ async function getTopSites() {
 const sites = ref<TopSite[]>([]);
 let bootstrapped = false;
 
-/** Exposed as a seam: the render check drives it to prove the empty case. */
+// Exposed as a seam so the render check can drive the empty case.
 async function reload(): Promise<void> {
   sites.value = selectTopSites(await getTopSites());
 }

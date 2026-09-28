@@ -1,11 +1,5 @@
 <script setup lang="ts">
-/**
- * The app's only context menu.
- *
- * Rendered once in App.vue and driven by `useContextMenu()`. Global dismissal
- * listeners are registered a single time for the whole page — the previous
- * implementation re-bound them per render for every module.
- */
+// The app's only context menu, rendered once in App.vue and driven by `useContextMenu()`. Global dismissal listeners are registered a single time for the whole page.
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { clampMenuPosition } from "@/core/utils";
 import { useContextMenu } from "@/composables/useContextMenu";
@@ -129,9 +123,7 @@ function pick(action: string): void {
   color: var(--danger);
 }
 
-/* A finger is not a cursor. A 30px row is a comfortable click and a fiddly tap,
-   and a menu reached by a long press is the one place on the page whose entire
-   purpose is to be hit accurately. */
+/* A finger is not a cursor — a long-press menu must be hit accurately, so rows grow for touch. */
 @media (pointer: coarse) {
   .ctx-item {
     padding: 10px 12px;
