@@ -39,6 +39,10 @@ jobs:
 
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
+      # 构建扩展
+      - name: Build
+        run: npm run build
+
       # 修改 manifest.json 中的 version
       - name: Update manifest version
         env:
@@ -59,10 +63,6 @@ jobs:
             JSON.stringify(manifest, null, 2) + "\n"
           );
           EOF
-
-      # 构建扩展
-      - name: Build
-        run: pnpm build
 
       # 恢复私钥
       - name: Restore extension private key
