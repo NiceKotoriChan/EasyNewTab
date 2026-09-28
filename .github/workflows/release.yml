@@ -44,6 +44,8 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
+          pwd
+          ls -al
           node <<'EOF'
           const fs = require("fs");
 
