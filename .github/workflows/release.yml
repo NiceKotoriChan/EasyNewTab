@@ -47,8 +47,8 @@ jobs:
         run: |
           npx --no-install crx3 dist \
             -p extension.pem \
-            -o "EasyNewTab-$GITHUB_REF_NAME.crx" \
-            -z "EasyNewTab-$GITHUB_REF_NAME.zip" \
+            -o "EasyNewTab-$GITHUB_REF_NAME-chrome.crx" \
+            -z "EasyNewTab-$GITHUB_REF_NAME-chrome.zip" \
             --forceDateTime 1
 
       # 删除私钥
@@ -65,5 +65,5 @@ jobs:
           name: EasyNewTab ${{ github.ref_name }}
           generate_release_notes: true
           files: |
-            EasyNewTab-${{ github.ref_name }}.crx
-            EasyNewTab-${{ github.ref_name }}.zip
+            EasyNewTab-${{ github.ref_name }}-chrome.crx
+            EasyNewTab-${{ github.ref_name }}-chrome.zip
