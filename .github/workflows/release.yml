@@ -47,7 +47,7 @@ jobs:
           node <<'EOF'
           const fs = require("fs");
 
-          const path = "manifest.json";
+          const path = "dist/manifest.json";
           const manifest = JSON.parse(fs.readFileSync(path, "utf8"));
 
           manifest.version = process.env.VERSION;
