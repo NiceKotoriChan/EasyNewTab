@@ -25,44 +25,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 从 Git tag 获取版本号，例如 v1.2.3 → 1.2.3
-      - name: Get version
-        id: version
-        shell: bash
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Invalid version: $VERSION"
-            exit 1
-          fi
-
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
       # 构建扩展
       - name: Build
         run: npm run build
-
-      # 修改 manifest.json 中的 version
-      - name: Update manifest version
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          pwd
-          ls -al
-          node <<'EOF'
-          const fs = require("fs");
-
-          const path = "dist/manifest.json";
-          const manifest = JSON.parse(fs.readFileSync(path, "utf8"));
-
-          manifest.version = process.env.VERSION;
-
-          fs.writeFileSync(
-            path,
-            JSON.stringify(manifest, null, 2) + "\n"
-          );
-          EOF
 
       # 恢复私钥
       - name: Restore extension private key
@@ -77,31 +42,14 @@ jobs:
           printf '%s\n' "$EXTENSION_PRIVATE_KEY" > extension.pem
           chmod 600 extension.pem
 
-      # 安装 Chromium
-      - name: Install Chromium
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y chromium
-
       # 打包 CRX
       - name: Pack CRX
         run: |
-          mkdir -p release
-
-          chromium \
-            --headless \
-            --no-sandbox \
-            --disable-gpu \
-            --pack-extension="$PWD/dist" \
-            --pack-extension-key="$PWD/extension.pem"
-
-          mv dist.crx "release/EasyNewTab-${{ steps.version.outputs.version }}.crx"
-
-      # 计算 SHA256
-      - name: Generate checksum
-        run: |
-          cd release
-          sha256sum *.crx > SHA256SUMS
+          npx --no-install crx3 dist \
+            -p extension.pem \
+            -o "EasyNewTab-$GITHUB_REF_NAME.crx" \
+            -z "EasyNewTab-$GITHUB_REF_NAME.zip" \
+            --forceDateTime 1
 
       # 删除私钥
       - name: Remove private key
@@ -110,12 +58,12 @@ jobs:
           rm -f extension.pem
 
       # 创建 GitHub Release
-      - name: Create Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: EasyNewTab ${{ steps.version.outputs.version }}
+          name: EasyNewTab ${{ github.ref_name }}
           generate_release_notes: true
           files: |
-            release/*.crx
-            release/SHA256SUMS
+            EasyNewTab-${{ github.ref_name }}.crx
+            EasyNewTab-${{ github.ref_name }}.zip
