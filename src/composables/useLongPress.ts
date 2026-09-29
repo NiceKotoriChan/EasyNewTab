@@ -9,7 +9,7 @@
  *  bookmark row that means "open this bookmark". The caller gets coordinates rather than an event,
  *  because at the moment the menu opens there is no mouse event. */
 import {
-  isLongPressPointer,
+  isFingerPointer,
   LONG_PRESS_MS,
   movedBeyondSlop,
 } from "@/core/gestures";
@@ -21,7 +21,7 @@ export function useLongPress(
   open: (x: number, y: number) => void,
 ): { onPointerdown: (event: PointerEvent) => void } {
   function onPointerdown(event: PointerEvent): void {
-    if (!isLongPressPointer(event.pointerType)) return;
+    if (!isFingerPointer(event.pointerType)) return;
     // A press on a text field belongs to the platform: on a touchscreen it is how Paste is reached,
     // which is why the shell leaves the browser's own menu alone there.
     if ((event.target as HTMLElement | null)?.closest?.("input, textarea, [contenteditable]")) {

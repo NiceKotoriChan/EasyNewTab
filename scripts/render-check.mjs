@@ -796,16 +796,16 @@ try {
   // The gesture has no markup to look at and no DOM here to fire a touch at. What can be pinned
   // is the half that lives in this process — which pointers arm it — plus what the two ways in
   // have to agree on: which rows have a menu at all, and what is on it.
-  const { isLongPressPointer } = await server.ssrLoadModule(
+  const { isFingerPointer } = await server.ssrLoadModule(
     "/src/core/gestures.ts",
   );
   expectEqual(
-    isLongPressPointer("touch"),
+    isFingerPointer("touch"),
     true,
     "a long press is armed for a finger",
   );
   expectEqual(
-    isLongPressPointer("mouse"),
+    isFingerPointer("mouse"),
     false,
     "and for nothing else — the tree's drag is a mouse gesture and would lose that press",
   );
@@ -870,6 +870,42 @@ try {
   const coarse = rowSource.slice(rowSource.indexOf("@media (pointer: coarse)"));
   expect(coarse, ".remove", "BookmarkNode keeps its delete button reachable without hover");
   expect(coarse, "display: grid", "and shows it outright under a coarse pointer");
+
+  console.log("swipe");
+  // Same shape of proof as the long press, and for the same reason: the decision is a pure function
+  // with no markup, so the arithmetic is what can be pinned here — plus the wiring, which otherwise
+  // only a browser would witness.
+  const { swipeDirection, swipedIndex } = await server.ssrLoadModule(
+    "/src/core/gestures.ts",
+  );
+  const swipe = (dx, dy) =>
+    swipeDirection({ x: 200, y: 300 }, { x: 200 + dx, y: 300 + dy }, 400);
+  expectEqual(swipe(-60, 0), "left", "a finger moving left is a swipe left — the panel that arrives is the one that was off the right edge");
+  expectEqual(swipe(60, 0), "right", "and a finger moving right brings the one off the left edge back");
+  expectEqual(swipe(-40, 0), null, "a nudge is not a swipe — the tab strip stays the way in for a short movement");
+  expectEqual(swipe(-60, 90), null, "but a gesture that travelled further down than sideways was a scroll, and the panel must not also have moved");
+  expectEqual(swipeDirection({ x: 10, y: 300 }, { x: 0, y: 300 }, 400), null, "and one starting in the browser's edge strip is never ours — that strip is Chromium's back/forward");
+  expectEqual(swipedIndex(0, "left", 2), 1, "advancing from the first view lands on the second");
+  expectEqual(swipedIndex(1, "left", 2), null, "and from the last there is nowhere to advance to — the ends hold");
+
+  const panelSource = await readSource(
+    "src/components/layout/SidePanel.vue",
+    "utf8",
+  );
+  expect(panelSource, "useSwipeView(", "the panel listens for the swipe itself");
+  expect(panelSource, "@pointerdown", "on pointerdown, so nothing has to be clicked first");
+  expect(panelSource, "swipedIndex(", "and decides where it lands through the pure step rather than an if");
+  // The strip's order is the order the swipe walks, so inserting a tab moves the swipe with it.
+  expect(panelSource, "TABS.findIndex(", "reading the current position off the same tab list the header draws");
+  expect(panelSource, 'role="tab"', "and the segmented switch stays the first way in — the swipe is a second one, not a replacement");
+
+  // Two decisions the plumbing makes, both invisible until a phone is in a hand: the swipe reads
+  // the same events the page scrolls with, so it must swallow nothing; and a gesture the browser
+  // takes over for scrolling arrives as `pointercancel`, which has to let go of the pointer or a
+  // scroll would later complete as a swipe.
+  const swipeSource = await readSource("src/composables/useSwipeView.ts", "utf8");
+  expectAbsent(swipeSource, "preventDefault", "the swipe swallows nothing — a gesture that turns out to be a scroll stays a scroll");
+  expect(swipeSource, '"pointercancel"', "and a cancelled gesture is released, so a scroll can never finish as a swipe");
 
   console.log("a write that did not land");
   // The other half of "the setting doesn't work": the write fails, the control shows the new value,

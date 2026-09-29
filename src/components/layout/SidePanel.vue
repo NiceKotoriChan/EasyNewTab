@@ -3,6 +3,8 @@
 import Icon from "../ui/Icon.vue";
 import type { IconName } from "../ui/mdi-icons";
 import type { LayoutState } from "@/core/settings";
+import { useSwipeView } from "@/composables/useSwipeView";
+import { swipedIndex } from "@/core/gestures";
 
 const props = defineProps<{ active: LayoutState["activeView"] }>();
 const emit = defineEmits<{ select: [view: LayoutState["activeView"]] }>();
@@ -15,10 +17,22 @@ const TABS: Array<{
   { view: "bookmarks", icon: "bookmark", label: "Bookmarks" },
   { view: "history", icon: "history", label: "History" },
 ];
+
+// A second way in for a finger, on the same axis the switch already lays the two panels out on: the
+// strip's order *is* the swipe's order, so advancing means the next tab along and the panel that
+// arrives is the one that was off that edge. The ends hold — there is no third panel to wrap to.
+const swipe = useSwipeView((direction) => {
+  const next = swipedIndex(
+    TABS.findIndex((tab) => tab.view === props.active),
+    direction,
+    TABS.length,
+  );
+  if (next !== null) emit("select", TABS[next].view);
+});
 </script>
 
 <template>
-  <section class="side-panel">
+  <section class="side-panel" @pointerdown="swipe.onPointerdown">
     <header class="panel-head">
       <div class="tabs" role="tablist" aria-label="Sidebar view">
         <button
