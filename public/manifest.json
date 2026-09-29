@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Easy New Tab",
-  "version": "3.0.0",
+  "name": "EasyNewTab",
+  "version": "1.0.2",
   "description": "New tab page built as an IDE-style shell: bookmark tree, history and web search.",
   "chrome_url_overrides": {
     "newtab": "newtab.html"

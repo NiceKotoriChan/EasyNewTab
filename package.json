@@ -1,9 +1,7 @@
 {
   "name": "EasyNewTab",
   "private": true,
-  "version": "3.0.0",
   "type": "module",
-  "description": "Chrome new tab page rebuilt as a VS Code-style IDE shell",
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build",
