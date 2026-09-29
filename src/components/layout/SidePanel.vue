@@ -1,10 +1,11 @@
 <script setup lang="ts">
 // Sidebar pane: a segmented switch (bookmarks / history) above a scrolling body. The switch lives here because there are only two panels and it's the header's only content.
+import { useTemplateRef } from "vue";
+import { usePointerSwipe } from "@vueuse/core";
 import Icon from "../ui/Icon.vue";
 import type { IconName } from "../ui/mdi-icons";
 import type { LayoutState } from "@/core/settings";
-import { useSwipeView } from "@/composables/useSwipeView";
-import { swipedIndex } from "@/core/gestures";
+import { startedInBrowserEdge, swipedIndex } from "@/core/gestures";
 
 const props = defineProps<{ active: LayoutState["activeView"] }>();
 const emit = defineEmits<{ select: [view: LayoutState["activeView"]] }>();
@@ -18,21 +19,39 @@ const TABS: Array<{
   { view: "history", icon: "history", label: "History" },
 ];
 
-// A second way in for a finger, on the same axis the switch already lays the two panels out on: the
-// strip's order *is* the swipe's order, so advancing means the next tab along and the panel that
-// arrives is the one that was off that edge. The ends hold — there is no third panel to wrap to.
-const swipe = useSwipeView((direction) => {
-  const next = swipedIndex(
-    TABS.findIndex((tab) => tab.view === props.active),
-    direction,
-    TABS.length,
-  );
-  if (next !== null) emit("select", TABS[next].view);
+// A second way in, on the same axis the switch already lays the two panels out on: the strip's order
+// *is* the swipe's order, so advancing means the next tab along and the panel that arrives is the
+// one that was off that edge. The ends hold — there is no third panel to wrap to.
+//
+// The recognition is VueUse's `usePointerSwipe`, not ours: it takes pointer events (so a mouse drag
+// moves the panels too, which is what makes this testable away from a phone), captures the pointer
+// so the finger may leave the box, and treats a diagonal as up/down, leaving only a sideways
+// gesture to reach here. What stays below is the two things it cannot know: the edge strip the
+// browser owns, and which panel a direction means.
+const panel = useTemplateRef<HTMLElement>("panel");
+let startedAt = 0;
+
+usePointerSwipe(panel, {
+  onSwipeStart: (event) => {
+    startedAt = event.clientX;
+  },
+  onSwipeEnd: (_event, direction) => {
+    if (direction !== "left" && direction !== "right") return;
+    // The browser judges where the gesture started, so the guard reads there too.
+    if (startedInBrowserEdge(startedAt, window.innerWidth)) return;
+
+    const next = swipedIndex(
+      TABS.findIndex((tab) => tab.view === props.active),
+      direction,
+      TABS.length,
+    );
+    if (next !== null) emit("select", TABS[next].view);
+  },
 });
 </script>
 
 <template>
-  <section class="side-panel" @pointerdown="swipe.onPointerdown">
+  <section ref="panel" class="side-panel">
     <header class="panel-head">
       <div class="tabs" role="tablist" aria-label="Sidebar view">
         <button
@@ -65,6 +84,12 @@ const swipe = useSwipeView((direction) => {
   min-height: 0;
   height: 100%;
   overflow: hidden;
+  /* A sideways drag has to be ours from the first pixel. With `auto`, Chromium claims the touch to
+     find out whether it should pan, and the gesture arrives as `pointercancel` instead of surviving —
+     which is what a swipe cannot recover from. `pan-y` names the one axis the panel still scrolls on,
+     so the list scrolls as before and the swipe gets through. The cost is real and accepted: no
+     pinch-zoom inside the panel. */
+  touch-action: pan-y;
 }
 
 .panel-head {

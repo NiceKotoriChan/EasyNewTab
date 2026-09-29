@@ -1,6 +1,9 @@
 /**
- * Touch gestures, as pure functions: which pointers are ours at all, and what the finger did —
- * held still, scrolled away, or travelled sideways.
+ * The gesture decisions that are ours. The *detection* is not one of them: a swipe's threshold and
+ * axis lock belong to `usePointerSwipe` (VueUse), and a long press's timing is the platform's.
+ *
+ * What is left here is the two things no library can know — whether a gesture belongs to us at all,
+ * and where it lands.
  */
 
 /** Chrome's own long press is 500ms. */
@@ -11,21 +14,14 @@ export const LONG_PRESS_MS = 500;
  *  below "this is a scroll". */
 export const PRESS_SLOP = 10;
 
-/** How far a swipe has to travel. Well above `PRESS_SLOP` on purpose: a thumb settling onto a row
- *  is not a swipe, and a threshold that low would make the panels twitch under the finger. */
-export const SWIPE_MIN_X = 48;
-
-/** The vertical drift a swipe may carry. Past this the finger was scrolling the list, and a scroll
- *  is the one thing a swipe must never win against. */
-export const SWIPE_MAX_Y = 40;
-
-/** The strip along each screen edge belongs to the browser: Chromium's own edge swipe is
- *  back/forward, and a tab switch fighting it loses to the browser anyway. */
+/** The strip along each screen edge belongs to the browser: Android's system back gesture and
+ *  Chromium's own edge swipe both live there, and a panel switch that fights either one loses — the
+ *  page would move *and* navigate. */
 export const SWIPE_EDGE = 24;
 
 /** A mouse and a pen both have a right button, and a right-click already opens the menu — only a
- *  finger needs the stand-in. The same answer covers the swipe: a mouse drag is how the tree's
- *  adapter moves a row, and how text gets selected. */
+ *  finger needs the stand-in. The swipe deliberately does not ask this: it takes a primary-button
+ *  drag from any pointer, so a mouse can move the panels too. */
 export function isFingerPointer(pointerType: string): boolean {
   return pointerType === "touch";
 }
@@ -39,29 +35,20 @@ export function movedBeyondSlop(
   );
 }
 
+/**
+ * Whether a gesture that started at `x` began in a strip the browser owns.
+ *
+ * Read from where the finger *started*, because that is what the browser judges: a drag that begins
+ * outside the strip stays ours all the way across, and one that begins inside it is the browser's
+ * even if it then travels far.
+ */
+export function startedInBrowserEdge(x: number, viewportWidth: number): boolean {
+  return x < SWIPE_EDGE || x > viewportWidth - SWIPE_EDGE;
+}
+
 /** The way the finger went. "left" is the finger moving left, so the panel that arrives is the one
  *  that was off the right-hand edge. */
 export type SwipeDirection = "left" | "right";
-
-/**
- * Whether a gesture was a swipe, and which way — from where it started and where it ended.
- *
- * `null` covers the three ways it is not one: it began in the browser's edge strip, it did not
- * travel, or it went further up or down than sideways, which makes it a scroll. All three are read
- * off the two points rather than off events, so the answer holds however the gesture was delivered.
- */
-export function swipeDirection(
-  from: { x: number; y: number },
-  to: { x: number; y: number },
-  viewportWidth: number,
-): SwipeDirection | null {
-  if (from.x < SWIPE_EDGE || from.x > viewportWidth - SWIPE_EDGE) return null;
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  if (Math.abs(dx) < SWIPE_MIN_X) return null;
-  if (Math.abs(dy) > SWIPE_MAX_Y || Math.abs(dy) > Math.abs(dx)) return null;
-  return dx < 0 ? "left" : "right";
-}
 
 /**
  * Where a swipe lands in a row of `count` positions, or `null` if there is nothing that way. The
