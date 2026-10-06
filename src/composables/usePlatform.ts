@@ -3,13 +3,10 @@
  *
  * - `isCompact` (≤720px) — is there room? Two panes stop fitting side by side, so the shell stacks
  *   them. A fact about the *window*: a narrow desktop window gets it too.
- * - `isTouch` (coarse pointer) — what can the input do? No right button (so menus need a long
- *   press) and no hardware keyboard. A touchscreen laptop has both a mouse and a keyboard, so it
- *   gets neither.
+ * - `isTouch` (coarse pointer) — what can the input do? No right button, so menus need a long
+ *   press; no hardware keyboard, so a touchscreen laptop gets neither.
  *
- * Merging them would make one of the two devices wrong. The two components with a width breakpoint
- * of their own (`SidePanel` below 640, `EngineSwitcher` its engine names) answer whether *their own*
- * contents fit and are left alone.
+ * Merging them would make one of the two devices wrong.
  */
 import { ref, type Ref } from "vue";
 

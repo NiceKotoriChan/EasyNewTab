@@ -1,13 +1,12 @@
 /**
  * History state — shared by the sidebar list and the panel switch.
  *
- * The cap is the user's (`Settings.historyLimit`, 100 by default), because
- * `chrome.history.search` will happily answer with a whole profile's worth of rows. The other two
- * query fields are deliberate: `startTime: 0`, because the API's own default is the last 24 hours,
- * and `text: ""`, which is what means "match everything". The API's order is kept as-is.
+ * The cap is the user's (`Settings.historyLimit`, 100 by default), because `chrome.history.search`
+ * will happily answer with a whole profile's worth of rows. `startTime: 0` and `text: ""` are both
+ * deliberate: the API's own default is the last 24 hours, and `""` is what means "match everything".
  */
-import { ref, type Ref } from "vue";
-import { type HistoryItemLike } from "@/core/history";
+import { computed, ref, type ComputedRef, type Ref } from "vue";
+import { filterHistory, type HistoryItemLike } from "@/core/history";
 import { normalizeSettings } from "@/core/settings";
 import { debounce } from "@/core/utils";
 import { useSettings } from "./useSettings";
@@ -60,6 +59,15 @@ const items = ref<HistoryItemLike[]>([]);
 const loading = ref(true);
 const failed = ref(false);
 
+/** The panel's own filter text — module-scope, for the same reason the bookmark tree's folds are. */
+const searchQuery = ref("");
+
+const visibleItems = computed(() => filterHistory(items.value, searchQuery.value));
+
+/** Derived from the query rather than from "did anything get dropped": an empty list and an empty
+ *  result set are different sentences, and only the query can tell them apart. */
+const searchActive = computed(() => searchQuery.value.trim().length > 0);
+
 let bootstrapped = false;
 
 // The cap the on-screen rows were fetched with, or null before the first fetch.
@@ -97,6 +105,9 @@ function bootstrap(): void {
 
 export function useHistory(): {
   items: Ref<HistoryItemLike[]>;
+  visibleItems: ComputedRef<HistoryItemLike[]>;
+  searchActive: ComputedRef<boolean>;
+  searchQuery: Ref<string>;
   loading: Ref<boolean>;
   failed: Ref<boolean>;
   reload: () => Promise<void>;
@@ -105,6 +116,9 @@ export function useHistory(): {
 
   return {
     items,
+    visibleItems,
+    searchActive,
+    searchQuery,
     loading,
     failed,
     reload,

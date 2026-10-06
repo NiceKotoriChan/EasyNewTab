@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Main-area view: a quiet clock and the hero search box. Compact shrinks to just the box + engine row; the box autofocuses, and `focus` is exposed for when mount doesn't cover it.
+// Main-area view: a quiet clock and the hero search box. Compact drops the clock and keeps the box, the engine row and the most-visited row — the last of those is the one part of this pane that is a destination rather than a decoration, so a phone gets it too; the box autofocuses, and `focus` is exposed for when mount doesn't cover it.
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import SearchField from "../SearchField.vue";
 import TopSites from "./TopSites.vue";
@@ -64,7 +64,7 @@ defineExpose({ focus: () => field.value?.focus() });
 
       <div class="search-block">
         <SearchField ref="field" autofocus large show-engines @escape="leaveField" />
-        <TopSites v-if="!isCompact" />
+        <TopSites />
       </div>
     </div>
   </section>
@@ -76,9 +76,21 @@ defineExpose({ focus: () => field.value?.focus() });
   flex-direction: column;
   align-items: center;
   height: 100%;
-  /* Upper third, not dead centre; the padding is a share of viewport height so the block keeps its place as the window grows. */
-  padding: clamp(56px, 13vh, 150px) 24px 40px;
+  padding: 40px 24px;
   overflow-y: auto;
+}
+
+/* Desktop: the block sits above dead centre, upper 4 to lower 6. Two flex spacers rather than auto
+   margins, because the share is deliberately uneven; a window shorter than the block collapses them
+   to nothing and scrolls from the top instead of clipping the clock. */
+.welcome:not(.is-compact)::before {
+  content: "";
+  flex: 4 1 0;
+}
+
+.welcome:not(.is-compact)::after {
+  content: "";
+  flex: 6 1 0;
 }
 
 /* Stacked, this pane is only as tall as its contents, so the landing zone is ordinary padding. */
@@ -87,6 +99,8 @@ defineExpose({ focus: () => field.value?.focus() });
 }
 
 .stack {
+  /* Never squashed: the block keeps its height and the container scrolls instead. */
+  flex: none;
   width: min(620px, 100%);
   display: flex;
   flex-direction: column;

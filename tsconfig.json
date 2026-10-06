@@ -16,8 +16,7 @@
     "skipLibCheck": true,
     "noEmit": true,
     // Inside `core/` relative imports carry their `.ts` extension. Vite does not
-    // care either way, but the test runner executes those modules through Node's
-    // native type stripping, and bare ESM specifiers are not resolved for it.
+    // care either way, but this flag is what keeps that convention legal.
     "allowImportingTsExtensions": true,
     "jsx": "preserve",
     "baseUrl": ".",

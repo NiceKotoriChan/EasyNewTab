@@ -1,10 +1,9 @@
-/** Sidebar geometry: width + collapsed flag, persisted to `storage.local` — the width of
- *  a window should not follow the profile to another machine.
+/** Side-column geometry: one width and one collapsed flag, shared by both dividers and persisted to
+ *  `storage.local` — the width of a window should not follow the profile to another machine.
  *
- *  There is no collapse button: dragging the divider shut *is* the gesture, so this drag
- *  handler is also the collapse handler. */
+ *  There is no collapse button: dragging a divider shut *is* the gesture, so this drag handler is
+ *  also the collapse handler. */
 import { ref, type Ref } from "vue";
-import { useSettings } from "@/composables/useSettings";
 import {
   clampSidebarWidth,
   dragWidth,
@@ -12,6 +11,7 @@ import {
   resolveSidebarDrag,
   SIDEBAR_DEFAULT,
   type LayoutState,
+  type SideEdge,
 } from "@/core/settings";
 import { debounce } from "@/core/utils";
 
@@ -49,10 +49,9 @@ export function useSidebar(): {
   collapsed: Ref<boolean>;
   toggle(): void;
   setWidth(value: number): void;
-  startResize(event: PointerEvent): void;
+  startResize(event: PointerEvent, side: SideEdge): void;
 } {
   bootstrap();
-  const { settings } = useSettings();
 
   function setWidth(value: number): void {
     width.value = clampSidebarWidth(value);
@@ -64,20 +63,18 @@ export function useSidebar(): {
     void saveLayout({ sidebarCollapsed: collapsed.value });
   }
 
-  function startResize(event: PointerEvent): void {
+  function startResize(event: PointerEvent, side: SideEdge): void {
     event.preventDefault();
     const startX = event.clientX;
     // Collapsed, the divider hugs the window edge, so the width it describes
     // starts at zero and the drag is measured from where the pointer went down.
     const startWidth = collapsed.value ? 0 : width.value;
-    // Read once, at pointerdown: the docking side cannot change mid-drag.
-    const position = settings.value.sidebarPosition;
     const target = event.currentTarget as HTMLElement;
     target.setPointerCapture(event.pointerId);
 
     const onMove = (e: PointerEvent) => {
       const drag = resolveSidebarDrag(
-        dragWidth(startWidth, startX, e.clientX, position),
+        dragWidth(startWidth, startX, e.clientX, side),
         collapsed.value,
       );
       if (drag.kind === "collapse") {
@@ -90,9 +87,8 @@ export function useSidebar(): {
     };
 
     // The listeners live on the handle, and the handle therefore has to outlive
-    // the state change it causes: a divider that unmounted when the sidebar
+    // the state change it causes: a divider that unmounted when the columns
     // collapsed would take its own listeners with it, leaving the drag stuck.
-    // `Sash.vue` is rendered unconditionally for exactly this reason.
     const onUp = () => {
       target.removeEventListener("pointermove", onMove);
       target.removeEventListener("pointerup", onUp);
@@ -110,13 +106,4 @@ export function useSidebar(): {
   }
 
   return { width, collapsed, toggle, setWidth, startResize };
-}
-
-// Persist the active panel without spinning up the whole geometry store.
-export function persistActiveView(view: LayoutState["activeView"]): void {
-  void saveLayout({ activeView: view });
-}
-
-export function loadActiveView(): Promise<LayoutState> {
-  return loadLayout();
 }

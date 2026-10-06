@@ -1,13 +1,25 @@
 <script setup lang="ts">
-// History sidebar panel — one flat list, newest first. One click opens an entry in a new tab; opening is the row's only action (no delete, no menu). How much it lists is the shell's `historyLimit`.
-import Favicon from "../ui/Favicon.vue";
+// History sidebar panel — filter bar over one flat list, newest first. One click opens an entry in a
+// new tab; opening is the row's only action (no delete, no menu). How much it lists is the shell's
+// `historyLimit`.
+import { onBeforeUnmount, useTemplateRef } from "vue";
+import Favicon from "./ui/Favicon.vue";
+import PanelSearch from "./ui/PanelSearch.vue";
 import { useHistory } from "@/composables/useHistory";
+import { registerPanelSearch } from "@/composables/usePanelSearch";
 import { useSettings } from "@/composables/useSettings";
 import { formatVisitStamp } from "@/core/history";
 import { openUrl } from "@/core/utils";
 
-const { items, loading, failed } = useHistory();
+const { items, visibleItems, searchActive, searchQuery, loading, failed } =
+  useHistory();
 const { settings } = useSettings();
+
+// `h` is the way in; the panel is the one that registers where that lands.
+const search = useTemplateRef<InstanceType<typeof PanelSearch>>("search");
+const stopSearch = registerPanelSearch("history", () => search.value?.focus());
+
+onBeforeUnmount(stopSearch);
 
 // `url` is optional in the history API's types, so this guard is real.
 function openItem(url?: string): void {
@@ -17,6 +29,8 @@ function openItem(url?: string): void {
 
 <template>
   <div class="history-panel">
+    <PanelSearch ref="search" v-model="searchQuery" placeholder="Search history" />
+
     <div class="list scroll">
       <div v-if="loading && items.length === 0" class="pane-empty">
         Loading…
@@ -27,9 +41,16 @@ function openItem(url?: string): void {
       <div v-else-if="items.length === 0" class="pane-empty">
         No history yet
       </div>
+      <!-- After "you have none", for the same reason as the bookmark panel. -->
+      <div
+        v-else-if="searchActive && visibleItems.length === 0"
+        class="pane-empty"
+      >
+        No matches
+      </div>
 
       <div
-        v-for="item in items"
+        v-for="item in visibleItems"
         :key="item.url ?? item.id"
         class="row"
         :title="item.url"

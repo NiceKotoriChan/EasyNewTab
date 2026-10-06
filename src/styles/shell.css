@@ -1,0 +1,58 @@
+/* ============================================================
+   The shell's layout vocabulary: the box the new tab page lives
+   in, the strip of panes inside it, and the three ways that
+   strip is arranged. One shape is mounted at a time and only
+   their arrangements differ, so these three classes are shared
+   rather than owned by whichever component renders them.
+   ============================================================ */
+
+/* Clips, anchors the hover layers, and takes the sideways gesture. It never moves: a transform takes
+   an element's own clip region with it, so the translate lives on the track instead. `pan-y` names
+   the one axis the browser keeps, so every vertical drag still scrolls and only a swipe is ours —
+   the cost is no pinch-zoom inside the stage, and it is accepted. */
+.stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+.track {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
+.pane {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Docked: all three on screen at once, and each column is as wide as the last drag left it. */
+.track.is-dock > .pane.is-side {
+  flex: none;
+}
+
+.track.is-dock > .pane.is-centre {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Hover: only the centre is in the strip — the sides are layers over it, not columns beside it. */
+.track.is-hover > .pane.is-centre {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Paged: three screens wide, one per slot, and the translate picks the screen. */
+.track.is-page {
+  transition: transform var(--dur) var(--ease);
+}
+
+.track.is-page > .pane {
+  flex: 0 0 100%;
+  min-width: 0;
+}

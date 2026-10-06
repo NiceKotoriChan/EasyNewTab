@@ -12,10 +12,11 @@
 
 html,
 body {
-  height: 100%;
+  /* A floor, never a lock. `overflow: hidden` here would make the page unscrollable by the browser,
+     and on a phone that is also what stops a retractable toolbar from ever retracting; the shell
+     sizes itself in `dvh` and every pane scrolls inside its own box, so nothing needs the lock. */
+  min-height: 100vh;
   margin: 0;
-  /* The shell is a fixed, non-scrolling viewport — panes scroll, not the page. */
-  overflow: hidden;
 }
 
 body {
@@ -27,9 +28,8 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-#app,
-#app > * {
-  height: 100%;
+#app {
+  min-height: 100vh;
 }
 
 button {
@@ -101,8 +101,4 @@ mark.hl {
   background: transparent;
   color: var(--accent);
   font-weight: 600;
-}
-
-.mono {
-  font-family: var(--font-mono);
 }

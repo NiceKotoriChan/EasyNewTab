@@ -5,12 +5,7 @@
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build",
-    "typecheck": "vue-tsc --noEmit",
-    "test": "node --test tests/",
-    "icons": "node scripts/make-app-icons.mjs",
-    "preview": "npm run build",
-    "view": "node scripts/render-check.mjs",
-    "view:mobile": "node scripts/mobile-preview.mjs"
+    "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "^4.0.0",
@@ -24,7 +19,6 @@
     "@types/chrome": "^0.3.0",
     "@types/node": "^26.6.2",
     "@vitejs/plugin-vue": "^6.0.9",
-    "@vue/server-renderer": "^3.5.43",
     "crx3": "^2.0.0",
     "typescript": "^5.9.3",
     "unplugin-icons": "^24.0.0",

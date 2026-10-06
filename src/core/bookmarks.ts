@@ -1,4 +1,4 @@
-// Pure bookmark-tree logic; pinned by tests/bookmarks.test.ts.
+// Pure bookmark-tree logic: no `chrome.*` calls, so every rule here is answerable without a browser.
 
 export interface BookmarkNode {
   id: string;
@@ -25,8 +25,7 @@ export function isFolder(node: BookmarkNode): boolean {
 type RowActivation = "toggle" | "open";
 
 /** The click contract for a bookmark row: a bookmark opens, a folder folds. Deliberately not a
- *  selection — a sidebar click must not swap the main area's search box. A node with an empty URL
- *  counts as a folder, the same way `isFolder` treats it. */
+ *  selection — a sidebar click must not swap the main area's search box. */
 export function resolveRowActivation(node: BookmarkNode): RowActivation {
   return isFolder(node) ? "toggle" : "open";
 }
@@ -60,6 +59,62 @@ export function visibleTopLevelNodes(
 export function pickRootFolderId(tree: readonly BookmarkNode[]): string | null {
   const roots = topLevelNodes(tree);
   return roots[0]?.id ?? null;
+}
+
+/** Title *or* URL, case-insensitive: pages titled "Index" or "Untitled" are otherwise unfindable.
+ *  The needle is expected pre-lowered, so that happens once per keystroke rather than once per node. */
+function matchesQuery(node: BookmarkNode, needle: string): boolean {
+  return (
+    node.title.toLowerCase().includes(needle) ||
+    (node.url ?? "").toLowerCase().includes(needle)
+  );
+}
+
+interface BookmarkSearch {
+  /** False while no query is in effect, which means "draw the whole tree". */
+  active: boolean;
+  /** The tree to draw: the matches, plus the folders on the way down to them. */
+  nodes: BookmarkNode[];
+  /** The folders the search has to open. Empty when inactive. */
+  reveal: Set<string>;
+}
+
+/**
+ * The tree as the search box should draw it: the matches plus their *ancestors*, never their
+ * descendants. A matched folder could equally well open to show everything inside it — but the
+ * top-level folder is called "Bookmarks bar", so a search for "book" would dump the whole tree.
+ *
+ * `reveal` is returned rather than written: folder state the user set by hand is not the search's to
+ * overwrite, so the caller unions the two and clearing the query gives back exactly those folds.
+ *
+ * The list handed in has already been through `visibleTopLevelNodes`, so a hidden "Other bookmarks"
+ * is not searchable either — deliberately, since the results would otherwise point at rows the
+ * sidebar refuses to draw.
+ */
+export function searchBookmarks(
+  nodes: readonly BookmarkNode[],
+  query: string,
+): BookmarkSearch {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return { active: false, nodes: [...nodes], reveal: new Set() };
+
+  const reveal = new Set<string>();
+
+  function prune(list: readonly BookmarkNode[]): BookmarkNode[] {
+    const kept: BookmarkNode[] = [];
+    for (const node of list) {
+      const children = node.children ?? [];
+      const survivors = children.length ? prune(children) : [];
+      if (!matchesQuery(node, needle) && survivors.length === 0) continue;
+      kept.push(children.length ? { ...node, children: survivors } : { ...node });
+      // Only a folder that kept something needs opening; one that matched on its own has nothing
+      // to reveal and stays however the user left it.
+      if (survivors.length) reveal.add(node.id);
+    }
+    return kept;
+  }
+
+  return { active: true, nodes: prune(nodes), reveal };
 }
 
 function collectIds(

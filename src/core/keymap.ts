@@ -1,17 +1,17 @@
 /**
- * What a keydown means — a pure function of the event's fields, so it can be
- * tested without a window. `typing` is passed in rather than read off
- * `event.target`: "is the caret in a text field" is a DOM question.
+ * What a keydown means — a pure function of the event's fields, so it is answerable
+ * without a window. `typing` is passed in rather than read off `event.target`: "is the
+ * caret in a text field" is a DOM question.
  */
 
 type ShortcutAction =
-  | "toggle-sidebar"
-  | "show-bookmarks"
-  | "show-history"
+  | "toggle-panels"
+  | "focus-bookmarks"
+  | "focus-history"
   | "focus-search"
   | null;
 
-export interface KeyEventLike {
+interface KeyEventLike {
   /** As reported by the browser — the resolver compares case-insensitively. */
   key: string;
   ctrlKey?: boolean;
@@ -20,9 +20,7 @@ export interface KeyEventLike {
   typing: boolean;
 }
 
-// Character shortcuts only, gated behind `typing`; no modifier (so Ctrl+S stays the
-// browser's). Escape is unbound: it only unwound the deleted bookmarks filter, which a
-// text field handles itself.
+// Character shortcuts only, gated behind `typing`; no modifier (so Ctrl+S stays the browser's).
 export function resolveShortcut(event: KeyEventLike): ShortcutAction {
   const mod = event.ctrlKey === true || event.metaKey === true;
   const key = event.key.toLowerCase();
@@ -30,8 +28,8 @@ export function resolveShortcut(event: KeyEventLike): ShortcutAction {
   if (mod || event.typing) return null;
 
   if (event.key === "/") return "focus-search";
-  if (key === "s") return "toggle-sidebar";
-  if (key === "b") return "show-bookmarks";
-  if (key === "h") return "show-history";
+  if (key === "s") return "toggle-panels";
+  if (key === "b") return "focus-bookmarks";
+  if (key === "h") return "focus-history";
   return null;
 }

@@ -10,6 +10,7 @@ import {
   computeMoveTarget,
   isFolder,
   pickRootFolderId,
+  searchBookmarks,
   subtreeContains,
   topLevelNodes,
   visibleTopLevelNodes,
@@ -77,6 +78,19 @@ const index = computed(() => {
 
 const rootFolderId = computed(() => pickRootFolderId(rawTree.value));
 
+/** The panel's own filter text. Module-scope like `expandedIds`, so a trip to the other panel or a
+ *  change of shell shape does not lose what is being looked for. */
+const searchQuery = ref("");
+
+const search = computed(() => searchBookmarks(tree.value, searchQuery.value));
+
+/** What the sidebar draws: the tree, or a running query's slice of it. */
+const visibleTree = computed(() =>
+  search.value.active ? search.value.nodes : tree.value,
+);
+
+const searchActive = computed(() => search.value.active);
+
 async function reload(): Promise<void> {
   loading.value = true;
   try {
@@ -104,6 +118,9 @@ function bootstrap(): void {
 
 export function useBookmarks(): {
   tree: ComputedRef<BookmarkNode[]>;
+  visibleTree: ComputedRef<BookmarkNode[]>;
+  searchActive: ComputedRef<boolean>;
+  searchQuery: Ref<string>;
   loading: Ref<boolean>;
   failed: Ref<boolean>;
   rootFolderId: ComputedRef<string | null>;
@@ -119,10 +136,6 @@ export function useBookmarks(): {
   moveToEnd: (dragId: string) => Promise<void>;
   createFolder: (parentId: string, title: string) => Promise<void>;
   rename: (id: string, title: string) => Promise<void>;
-  updateNode: (
-    id: string,
-    changes: { title?: string; url?: string },
-  ) => Promise<void>;
   removeNode: (node: BookmarkNode) => Promise<void>;
 } {
   bootstrap();
@@ -132,7 +145,10 @@ export function useBookmarks(): {
   }
 
   function isExpanded(id: string): boolean {
-    return expandedIds.value.has(id);
+    if (expandedIds.value.has(id)) return true;
+    // A running search also opens the folders on the path to its hits — read from `reveal` rather
+    // than written into `expandedIds`, so clearing the query gives back the folds the user had.
+    return search.value.active && search.value.reveal.has(id);
   }
 
   function toggleExpanded(id: string): void {
@@ -201,14 +217,6 @@ export function useBookmarks(): {
     await reload();
   }
 
-  async function updateNode(
-    id: string,
-    changes: { title?: string; url?: string },
-  ): Promise<void> {
-    await chrome.bookmarks.update(id, changes);
-    await reload();
-  }
-
   async function removeNode(node: BookmarkNode): Promise<void> {
     if (isFolder(node)) await chrome.bookmarks.removeTree(node.id);
     else await chrome.bookmarks.remove(node.id);
@@ -216,6 +224,9 @@ export function useBookmarks(): {
   }
   return {
     tree,
+    visibleTree,
+    searchActive,
+    searchQuery,
     loading,
     failed,
     rootFolderId,
@@ -227,7 +238,6 @@ export function useBookmarks(): {
     moveToEnd,
     createFolder,
     rename,
-    updateNode,
     removeNode,
   };
 }

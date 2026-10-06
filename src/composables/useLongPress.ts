@@ -1,13 +1,10 @@
-/** Touch long press → the anchor a context menu opens from. Every menu is opened by a right-click
- *  and a touchscreen has no right button, so each list gets a second way in.
+/** Touch long press → the anchor a context menu opens from: a touchscreen has no right button, so
+ *  every list needs a second way in.
  *
  *  Only `pointerdown` is bound to the element; the rest of the gesture is listened for on `window`,
- *  because the finger routinely leaves the row it started on (a scroll does it immediately).
- *
- *  Two events have to be swallowed or the press produces a second, wrong action: Chromium's own
- *  `contextmenu` on a touch long press, and the `click` the finger coming up produces — on a
- *  bookmark row that means "open this bookmark". The caller gets coordinates rather than an event,
- *  because at the moment the menu opens there is no mouse event. */
+ *  because the finger routinely leaves the row it started on. Two events must be swallowed or the
+ *  press fires a second, wrong action: Chromium's own `contextmenu`, and the `click` the finger
+ *  coming up produces — which on a bookmark row means "open". */
 import {
   isFingerPointer,
   LONG_PRESS_MS,

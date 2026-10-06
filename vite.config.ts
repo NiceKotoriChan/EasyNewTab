@@ -12,16 +12,11 @@ export default defineConfig({
   base: "./",
 
   plugins: [
-    // Scoped-style hashes (`data-v-…`) must be *identical* in the dev/SSR
-    // pipeline and in a production build. plugin-vue's default generator hashes
-    // `path + source` only when `isProduction` is true, so the same component
-    // gets one hash under `vite build` and a different one under
-    // `server.ssrLoadModule`. Anything that renders a component server-side and
-    // then pairs that markup with the shipped stylesheet — `render-check.mjs`
-    // and `mobile-preview.mjs` both do — would silently produce unstyled
-    // output, because none of the `data-v-…` attributes in the markup exist in
-    // the CSS. Pinning `filepath-source` makes the hash depend only on content,
-    // in every environment. Production output is bit-for-bit unchanged, since
+    // Scoped-style hashes (`data-v-…`) must be *identical* in the dev/SSR pipeline and in a
+    // production build. plugin-vue's default generator hashes `path + source` only when
+    // `isProduction` is true, so the same component gets one hash under `vite build` and a
+    // different one under `server.ssrLoadModule`. Pinning `filepath-source` makes the hash depend
+    // only on content, in every environment. Production output is bit-for-bit unchanged, since
     // `path + source` is already what the default computes there.
     vue({ features: { componentIdGenerator: "filepath-source" } }),
     // Icons come from Iconify's MDI set, resolved at *build* time from the

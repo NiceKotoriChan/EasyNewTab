@@ -1,10 +1,7 @@
-/** The Shortcuts list, as data. It lives outside the SFC so
- *  `scripts/render-check.mjs` can feed each row's keys through `resolveShortcut`
- *  and assert the mapping answers — the only thing that keeps a table of prose
- *  *about* behaviour from describing a binding the shell does not have. One row per
- *  thing the shell can be asked to do, and every row has to be a keystroke: that
- *  rule is why the divider drag is not here — it is a mouse gesture, and its one
- *  fact worth knowing (which way counts as "shut") is left to its hover text. */
+/** The Shortcuts list, as data: one row per thing the shell can be asked to do, and
+ *  every row has to be a keystroke. That rule is why the divider drag is not here —
+ *  it is a mouse gesture, and its one fact worth knowing (which way counts as "shut")
+ *  is left to its hover text. */
 
 interface Shortcut {
   keys: string;
@@ -17,7 +14,9 @@ export const SHORTCUTS: readonly Shortcut[] = [
   // field — leaving a field is the field's own Escape, which is not a shell binding and
   // so is not listed here.
   { keys: "/", label: "Focus the search bar" },
-  { keys: "s", label: "Show or hide the sidebar" },
-  { keys: "b", label: "Switch to the bookmarks panel" },
-  { keys: "h", label: "Switch to the history panel" },
+  // Asking for a named panel means the same thing in all three shapes: bring that one into view,
+  // whether that is a column that was retracted, an overlay pinned open, or a page to swipe to.
+  { keys: "s", label: "Show or hide the side panels" },
+  { keys: "b", label: "Open the bookmarks panel" },
+  { keys: "h", label: "Open the history panel" },
 ];

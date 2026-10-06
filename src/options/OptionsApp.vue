@@ -1,30 +1,25 @@
 <script setup lang="ts">
 /**
  * Settings page — the only place preferences can be changed; the new tab page has no gear button.
- * Three sections, nothing above them, and every control writes on change: no Save button, no prose.
- * Layout and Shortcuts each drop on the axis that makes them useless (stacked there is no column to
- * dock into; a touch device has no keyboard). `lastError` drives the alert strip, without which a
- * write that did not land looks like one that did.
+ * Every control writes on change: no Save button. `lastError` drives the alert strip, without which
+ * a write that did not land looks like one that did.
  */
 import Icon from "../components/ui/Icon.vue";
 import type { IconName } from "../components/ui/mdi-icons";
 import { useSettings } from "../composables/useSettings";
 import { usePlatform } from "../composables/usePlatform";
 import { SHORTCUTS } from "./shortcuts";
-import {
-  HISTORY_LIMIT_MAX,
-  HISTORY_LIMIT_MIN,
-  type SidebarPosition,
-} from "@/core/settings";
+import type { PanelMode } from "@/core/panels";
+import { HISTORY_LIMIT_MAX, HISTORY_LIMIT_MIN } from "@/core/settings";
 
 // `icon` is `IconName`, not `string`: a typo would render an empty box nobody notices.
-const POSITIONS: Array<{
-  id: SidebarPosition;
+const MODES: Array<{
+  id: PanelMode;
   label: string;
   icon: IconName;
 }> = [
-  { id: "left", label: "Left", icon: "panel-left" },
-  { id: "right", label: "Right", icon: "panel-right" },
+  { id: "docked", label: "Docked", icon: "layout-docked" },
+  { id: "hover", label: "On hover", icon: "layout-overlay" },
 ];
 
 const { settings, ready, lastError, update } = useSettings();
@@ -43,9 +38,19 @@ function onShowOtherBookmarksChange(event: Event): void {
   });
 }
 
-function setSidebarPosition(id: SidebarPosition): void {
-  if (id === settings.value.sidebarPosition) return;
-  void update({ sidebarPosition: id });
+// A switch rather than two named buttons: the choice has no third state to describe and the two
+// sides of the strip are the two sides of the control.
+function onSideOrderChange(event: Event): void {
+  void update({
+    sideOrder: (event.target as HTMLInputElement).checked
+      ? "bookmarks-left"
+      : "history-left",
+  });
+}
+
+function setPanelMode(id: PanelMode): void {
+  if (id === settings.value.panelMode) return;
+  void update({ panelMode: id });
 }
 
 /** The buttons land on the same bounds `normalizeSettings` clamps to, so neither can write a value
@@ -149,29 +154,45 @@ function stepHistoryLimit(direction: 1 | -1): void {
 
         <!-- Its own section because it is the one setting about the shell rather than
              about bookmarks. -->
-        <section v-if="!isCompact" class="panel">
+        <section class="panel">
           <div class="panel-head">
-            <span class="panel-mark"><Icon name="panel-left" :size="15" /></span>
+            <span class="panel-mark"><Icon name="layout-docked" :size="15" /></span>
             <h2 class="panel-title">Layout</h2>
           </div>
 
           <div class="group">
+            <!-- On every window: each of the three shapes reads the side order, and on a phone it
+                 is the only thing that decides where a swipe lands. -->
             <div class="row">
               <div class="row-text">
-                <div class="row-label">Sidebar position</div>
+                <div class="row-label">Bookmarks on the left</div>
               </div>
               <div class="row-control">
-                <div class="seg" role="group" aria-label="Sidebar position">
+                <input
+                  class="checkbox"
+                  type="checkbox"
+                  :checked="settings.sideOrder === 'bookmarks-left'"
+                  @change="onSideOrderChange"
+                />
+              </div>
+            </div>
+
+            <!-- Only the choice between the two shell shapes needs columns, and a narrow window has
+                 none — so this is the row that drops, not the section. -->
+            <div v-if="!isCompact" class="row">
+              <div class="row-text">
+                <div class="row-label">Panel layout</div>
+              </div>
+              <div class="row-control">
+                <div class="seg" role="group" aria-label="Panel layout">
                   <button
-                    v-for="option in POSITIONS"
+                    v-for="option in MODES"
                     :key="option.id"
                     type="button"
                     class="seg-item"
-                    :class="{
-                      'is-active': settings.sidebarPosition === option.id,
-                    }"
-                    :aria-pressed="settings.sidebarPosition === option.id"
-                    @click="setSidebarPosition(option.id)"
+                    :class="{ 'is-active': settings.panelMode === option.id }"
+                    :aria-pressed="settings.panelMode === option.id"
+                    @click="setPanelMode(option.id)"
                   >
                     <Icon :name="option.icon" :size="14" />
                     <span>{{ option.label }}</span>
@@ -204,7 +225,8 @@ function stepHistoryLimit(direction: 1 | -1): void {
 .options {
   display: flex;
   justify-content: center;
-  height: 100vh;
+  /* `dvh`, like the new tab shell, so a retractable toolbar does not put the last row under itself. */
+  height: 100dvh;
   padding: var(--gutter);
   background: var(--app-bg);
 }

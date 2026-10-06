@@ -7,17 +7,17 @@ import MdiChevronDown from "~icons/mdi/chevron-down";
 import MdiChevronRight from "~icons/mdi/chevron-right";
 import MdiClose from "~icons/mdi/close";
 import MdiCogOutline from "~icons/mdi/cog-outline";
-import MdiDockLeft from "~icons/mdi/dock-left";
-import MdiDockRight from "~icons/mdi/dock-right";
 import MdiFolder from "~icons/mdi/folder";
 import MdiFolderOutline from "~icons/mdi/folder-outline";
 import MdiHistory from "~icons/mdi/history";
 import MdiKeyboardOutline from "~icons/mdi/keyboard-outline";
+import MdiLayersOutline from "~icons/mdi/layers-outline";
 import MdiMagnify from "~icons/mdi/magnify";
 import MdiMinus from "~icons/mdi/minus";
 import MdiOpenInNew from "~icons/mdi/open-in-new";
 import MdiPlus from "~icons/mdi/plus";
 import MdiTrashCanOutline from "~icons/mdi/trash-can-outline";
+import MdiViewColumn from "~icons/mdi/view-column";
 import MdiWeb from "~icons/mdi/web";
 
 // Semantic name → MDI glyph. Adding an icon means adding one line here.
@@ -35,9 +35,9 @@ const ICONS = {
   globe: MdiWeb,
   history: MdiHistory,
   keyboard: MdiKeyboardOutline,
+  "layout-docked": MdiViewColumn,
+  "layout-overlay": MdiLayersOutline,
   minus: MdiMinus,
-  "panel-left": MdiDockLeft,
-  "panel-right": MdiDockRight,
   plus: MdiPlus,
   search: MdiMagnify,
   settings: MdiCogOutline,

@@ -33,3 +33,22 @@ export function formatVisitStamp(
   }
   return date.toLocaleDateString(UI_LOCALE, { month: "short", day: "numeric" });
 }
+
+/**
+ * The list as the search box should draw it. A flat list, so this is a filter and not a prune —
+ * the one place the history panel's search differs from the bookmark tree's. Title *or* URL, since a
+ * page with no title of its own is only findable by its address. The API's order is kept: a match
+ * from this morning still belongs below one from a minute ago.
+ */
+export function filterHistory(
+  items: readonly HistoryItemLike[],
+  query: string,
+): HistoryItemLike[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return [...items];
+  return items.filter(
+    (item) =>
+      (item.title ?? "").toLowerCase().includes(needle) ||
+      (item.url ?? "").toLowerCase().includes(needle),
+  );
+}
