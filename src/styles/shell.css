@@ -8,8 +8,7 @@
 
 /* Clips, anchors the hover layers, and takes the sideways gesture. It never moves: a transform takes
    an element's own clip region with it, so the translate lives on the track instead. `pan-y` names
-   the one axis the browser keeps, so every vertical drag still scrolls and only a swipe is ours —
-   the cost is no pinch-zoom inside the stage, and it is accepted. */
+   the one axis the browser keeps, so every vertical drag still scrolls and only a swipe is ours. */
 .stage {
   position: relative;
   flex: 1;
@@ -17,6 +16,7 @@
   display: flex;
   overflow: hidden;
   touch-action: pan-y;
+  overscroll-behavior-x: contain;
 }
 
 .track {
