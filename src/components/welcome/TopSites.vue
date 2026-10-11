@@ -10,7 +10,7 @@ const { settings } = useSettings();
 function open(url: string, event: MouseEvent): void {
   if (event.metaKey || event.ctrlKey) return;
   event.preventDefault();
-  openUrl(url, settings.value.openInNewTab);
+  openUrl(url, settings.value.openTopSitesInNewTab);
 }
 </script>
 
@@ -37,7 +37,7 @@ function open(url: string, event: MouseEvent): void {
 .top-sites {
   --tile-size: 112px;
   display: grid;
-  grid-template-columns: repeat(4, var(--tile-size));
+  grid-template-columns: repeat(auto-fill, var(--tile-size));
   justify-content: center;
 }
 
@@ -84,17 +84,5 @@ function open(url: string, event: MouseEvent): void {
   font-size: 12px;
   line-height: 16px;
   text-align: center;
-}
-
-@media (max-width: 495px) {
-  .top-sites {
-    grid-template-columns: repeat(3, var(--tile-size));
-  }
-}
-
-@media (max-width: 383px) {
-  .top-sites {
-    grid-template-columns: repeat(2, var(--tile-size));
-  }
 }
 </style>

@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { onMounted, ref } from "vue";
 import EngineSwitcher from "./EngineSwitcher.vue";
 import { useSearch } from "@/composables/useSearch";
-import { highlightMatch } from "@/core/utils";
 import Icon from "./ui/Icon.vue";
 
 const props = withDefaults(
@@ -22,26 +21,14 @@ const props = withDefaults(
 
 const emit = defineEmits<{ escape: []; submitted: [] }>();
 
-const { query, suggestions, activeIndex, canSuggest, move, commit, pick } =
-  useSearch();
+const { query, commit } = useSearch();
 
 const input = ref<HTMLInputElement | null>(null);
-const focused = ref(false);
-
-const dropdownOpen = computed(
-  () => focused.value && canSuggest.value && query.value.trim().length > 0,
-);
 
 function onKeydown(event: KeyboardEvent): void {
+  if (event.isComposing) return;
+
   switch (event.key) {
-    case "ArrowDown":
-      event.preventDefault();
-      move(1);
-      break;
-    case "ArrowUp":
-      event.preventDefault();
-      move(-1);
-      break;
     case "Enter":
       event.preventDefault();
       event.stopPropagation();
@@ -55,11 +42,6 @@ function onKeydown(event: KeyboardEvent): void {
       else emit("escape");
       break;
   }
-}
-
-function choose(index: number): void {
-  pick(index);
-  emit("submitted");
 }
 
 function clear(): void {
@@ -79,51 +61,32 @@ defineExpose({
 
 <template>
   <div class="search-field" :class="{ 'is-large': props.large }">
-    <div class="field-wrap">
-      <div class="field">
-        <Icon name="search" :size="props.large ? 19 : 15" class="prefix" />
-        <input
-          ref="input"
-          v-model="query"
-          type="text"
-          class="input"
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="off"
-          spellcheck="false"
-          :placeholder="props.placeholder"
-          @keydown="onKeydown"
-          @focus="focused = true"
-          @blur="focused = false"
-        />
-        <button
-          v-if="query"
-          type="button"
-          class="clear"
-          title="Clear"
-          aria-label="Clear search"
-          @mousedown.prevent="clear"
-          @click="clear"
-        >
-          <Icon name="close" :size="12" />
-        </button>
-      </div>
-
-      <ul v-if="dropdownOpen" class="suggestions">
-        <li v-if="suggestions.length === 0" class="none">No suggestions</li>
-        <li v-for="(item, index) in suggestions" :key="item + index">
-          <button
-            type="button"
-            class="suggestion"
-            :class="{ 'is-active': index === activeIndex }"
-            @mousedown.prevent="choose(index)"
-            @mouseenter="activeIndex = index"
-          >
-            <Icon name="arrow-right" :size="13" class="s-icon" />
-            <span class="s-text" v-html="highlightMatch(item, query)" />
-          </button>
-        </li>
-      </ul>
+    <div class="field">
+      <Icon name="search" :size="props.large ? 19 : 15" class="prefix" />
+      <input
+        ref="input"
+        v-model="query"
+        type="text"
+        class="input"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        enterkeyhint="search"
+        spellcheck="false"
+        :placeholder="props.placeholder"
+        @keydown="onKeydown"
+      />
+      <button
+        v-if="query"
+        type="button"
+        class="clear"
+        title="Clear"
+        aria-label="Clear search"
+        @mousedown.prevent="clear"
+        @click="clear"
+      >
+        <Icon name="close" :size="12" />
+      </button>
     </div>
 
     <EngineSwitcher v-if="props.showEngines" />
@@ -136,10 +99,6 @@ defineExpose({
   flex-direction: column;
   gap: 20px;
   width: 100%;
-}
-
-.field-wrap {
-  position: relative;
 }
 
 .field {
@@ -229,75 +188,5 @@ defineExpose({
 .is-large .clear {
   width: 30px;
   height: 30px;
-}
-
-.suggestions {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  right: 0;
-  z-index: 50;
-  max-height: 300px;
-  margin: 0;
-  padding: 6px;
-  list-style: none;
-  overflow-y: auto;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-}
-
-.suggestion {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  width: 100%;
-  padding: 8px 10px;
-  text-align: left;
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  color: var(--text);
-}
-
-.is-large .suggestion {
-  padding: 10px 12px;
-  font-size: 13.5px;
-}
-
-.s-icon {
-  color: var(--text-muted);
-  opacity: 0.65;
-}
-
-.s-text {
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.suggestion.is-active,
-.suggestion:hover {
-  background: var(--selection-bg);
-  color: var(--selection-fg);
-}
-
-.suggestion.is-active .s-icon,
-.suggestion:hover .s-icon {
-  color: inherit;
-  opacity: 1;
-}
-
-.suggestion.is-active :deep(.hl),
-.suggestion:hover :deep(.hl) {
-  color: inherit;
-}
-
-.none {
-  padding: 10px 12px;
-  color: var(--text-muted);
-  font-size: 12.5px;
 }
 </style>

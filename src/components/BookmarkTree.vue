@@ -169,7 +169,13 @@ function activate(node: BookmarkNode): void {
     toggleExpanded(node.id);
     return;
   }
-  if (node.url) openUrl(node.url, settings.value.openInNewTab);
+  if (node.url) openUrl(node.url, settings.value.openBookmarksInNewTab);
+}
+
+function openFirstMatch(): void {
+  const match = rows.value.find((row) => !row.folder && row.node.url);
+  const url = match?.node.url;
+  if (url) openUrl(url, settings.value.openBookmarksInNewTab);
 }
 
 function nodeContextMenu(x: number, y: number, node: BookmarkNode): void {
@@ -260,7 +266,12 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="bookmark-panel">
-    <PanelSearch ref="search" v-model="searchQuery" placeholder="Search bookmarks" />
+    <PanelSearch
+      ref="search"
+      v-model="searchQuery"
+      placeholder="Search bookmarks"
+      @submit="openFirstMatch"
+    />
 
     <div
       ref="container"

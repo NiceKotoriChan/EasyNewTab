@@ -3,15 +3,31 @@ import Icon from "../components/ui/Icon.vue";
 import { useSettings } from "../composables/useSettings";
 import { usePlatform } from "../composables/usePlatform";
 import { SHORTCUTS } from "./shortcuts";
-import { HISTORY_LIMIT_MAX, HISTORY_LIMIT_MIN } from "@/core/settings";
+import {
+  HISTORY_LIMIT_MAX,
+  HISTORY_LIMIT_MIN,
+  type Settings,
+} from "@/core/settings";
 
 const { settings, ready, lastError, update } = useSettings();
 const { isTouch } = usePlatform();
 
 const HISTORY_STEP = 50;
 
-function onOpenInNewTabChange(event: Event): void {
-  void update({ openInNewTab: (event.target as HTMLInputElement).checked });
+const NEW_TAB_TOGGLES = [
+  { key: "openBookmarksInNewTab", label: "Open bookmarks in a new tab" },
+  { key: "openSearchInNewTab", label: "Open search in a new tab" },
+  { key: "openHistoryInNewTab", label: "Open history in a new tab" },
+  { key: "openTopSitesInNewTab", label: "Open top sites in a new tab" },
+] as const;
+
+type NewTabKey = (typeof NEW_TAB_TOGGLES)[number]["key"];
+
+function onNewTabToggle(key: NewTabKey, event: Event): void {
+  const checked = (event.target as HTMLInputElement).checked;
+  const patch: Partial<Settings> = {};
+  patch[key] = checked;
+  void update(patch);
 }
 
 function onShowOtherBookmarksChange(event: Event): void {
@@ -60,16 +76,16 @@ function stepHistoryLimit(direction: 1 | -1): void {
           </div>
 
           <div class="group">
-            <div class="row">
+            <div v-for="item in NEW_TAB_TOGGLES" :key="item.key" class="row">
               <div class="row-text">
-                <div class="row-label">Open bookmarks in a new tab</div>
+                <div class="row-label">{{ item.label }}</div>
               </div>
               <div class="row-control">
                 <input
                   class="checkbox"
                   type="checkbox"
-                  :checked="settings.openInNewTab"
-                  @change="onOpenInNewTabChange"
+                  :checked="settings[item.key]"
+                  @change="onNewTabToggle(item.key, $event)"
                 />
               </div>
             </div>

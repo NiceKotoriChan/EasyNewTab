@@ -72,7 +72,6 @@ defineExpose({ focus: () => field.value?.focus() });
   flex-direction: column;
   align-items: center;
   height: 100%;
-  padding: 40px 24px;
   overflow-y: auto;
 }
 
@@ -84,10 +83,6 @@ defineExpose({ focus: () => field.value?.focus() });
 .welcome:not(.is-compact)::after {
   content: "";
   flex: 6 1 0;
-}
-
-.welcome.is-compact {
-  padding: 20px 16px 18px;
 }
 
 .stack {

@@ -18,13 +18,22 @@ const stopSearch = registerPanelSearch("history", () => search.value?.focus());
 onBeforeUnmount(stopSearch);
 
 function openItem(url?: string): void {
-  if (url) openUrl(url, settings.value.openInNewTab);
+  if (url) openUrl(url, settings.value.openHistoryInNewTab);
+}
+
+function openFirstMatch(): void {
+  openItem(visibleItems.value[0]?.url);
 }
 </script>
 
 <template>
   <div class="history-panel">
-    <PanelSearch ref="search" v-model="searchQuery" placeholder="Search history" />
+    <PanelSearch
+      ref="search"
+      v-model="searchQuery"
+      placeholder="Search history"
+      @submit="openFirstMatch"
+    />
 
     <div class="list scroll">
       <div v-if="loading && items.length === 0" class="pane-empty">

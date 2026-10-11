@@ -9,26 +9,6 @@ export function debounce<F extends (...args: never[]) => void>(
   };
 }
 
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-export function highlightMatch(text: string, query: string): string {
-  const escaped = escapeHtml(text);
-  const q = query.trim();
-  if (!q) return escaped;
-  const safe = escapeHtml(q).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return escaped.replace(
-    new RegExp(`(${safe})`, "gi"),
-    '<mark class="hl">$1</mark>',
-  );
-}
-
 export function getFaviconUrl(url: string | undefined, size = 32): string {
   if (!url) return "";
   return (

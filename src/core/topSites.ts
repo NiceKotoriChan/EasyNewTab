@@ -8,8 +8,6 @@ export interface TopSite {
   title: string;
 }
 
-const TOP_SITE_LIMIT = 8;
-
 function labelFor(url: string): string {
   try {
     return new URL(url).hostname.replace(/^www\./, "");
@@ -18,13 +16,9 @@ function labelFor(url: string): string {
   }
 }
 
-export function selectTopSites(
-  sites: readonly TopSiteLike[],
-  limit: number = TOP_SITE_LIMIT,
-): TopSite[] {
+export function selectTopSites(sites: readonly TopSiteLike[]): TopSite[] {
   const picked: TopSite[] = [];
   for (const site of sites) {
-    if (picked.length >= limit) break;
     if (!site?.url) continue;
     picked.push({ url: site.url, title: site.title?.trim() || labelFor(site.url) });
   }

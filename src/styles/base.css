@@ -85,12 +85,6 @@ input {
   color: var(--danger);
 }
 
-mark.hl {
-  background: transparent;
-  color: var(--accent);
-  font-weight: 600;
-}
-
 body.is-resizing,
 body.is-resizing * {
   cursor: col-resize !important;

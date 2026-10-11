@@ -9,7 +9,10 @@ function isSideOrder(value: unknown): value is SideOrder {
 
 export interface Settings {
   searchEngine: EngineId;
-  openInNewTab: boolean;
+  openBookmarksInNewTab: boolean;
+  openSearchInNewTab: boolean;
+  openHistoryInNewTab: boolean;
+  openTopSitesInNewTab: boolean;
   showOtherBookmarks: boolean;
   historyLimit: number;
   sideOrder: SideOrder;
@@ -35,11 +38,18 @@ export const HISTORY_LIMIT_MAX = 1000;
 
 export const DEFAULT_SETTINGS: Settings = {
   searchEngine: DEFAULT_ENGINE_ID,
-  openInNewTab: true,
+  openBookmarksInNewTab: true,
+  openSearchInNewTab: true,
+  openHistoryInNewTab: true,
+  openTopSitesInNewTab: true,
   showOtherBookmarks: true,
   historyLimit: 100,
   sideOrder: "bookmarks-left",
 };
+
+function readBool(value: unknown, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback;
+}
 
 function clampInt(value: unknown, min: number, max: number, fallback: number) {
   const n = typeof value === "number" ? value : Number(value);
@@ -49,18 +59,28 @@ function clampInt(value: unknown, min: number, max: number, fallback: number) {
 
 export function normalizeSettings(raw: unknown): Settings {
   const o = (raw ?? {}) as Record<string, unknown>;
+  const legacy = typeof o.openInNewTab === "boolean" ? o.openInNewTab : undefined;
   return {
     searchEngine: isEngineId(o.searchEngine)
       ? (o.searchEngine as EngineId)
       : DEFAULT_SETTINGS.searchEngine,
-    openInNewTab:
-      typeof o.openInNewTab === "boolean"
-        ? o.openInNewTab
-        : DEFAULT_SETTINGS.openInNewTab,
-    showOtherBookmarks:
-      typeof o.showOtherBookmarks === "boolean"
-        ? o.showOtherBookmarks
-        : DEFAULT_SETTINGS.showOtherBookmarks,
+    openBookmarksInNewTab: readBool(
+      o.openBookmarksInNewTab,
+      legacy ?? DEFAULT_SETTINGS.openBookmarksInNewTab,
+    ),
+    openSearchInNewTab: readBool(
+      o.openSearchInNewTab,
+      legacy ?? DEFAULT_SETTINGS.openSearchInNewTab,
+    ),
+    openHistoryInNewTab: readBool(
+      o.openHistoryInNewTab,
+      legacy ?? DEFAULT_SETTINGS.openHistoryInNewTab,
+    ),
+    openTopSitesInNewTab: readBool(
+      o.openTopSitesInNewTab,
+      legacy ?? DEFAULT_SETTINGS.openTopSitesInNewTab,
+    ),
+    showOtherBookmarks: readBool(o.showOtherBookmarks, DEFAULT_SETTINGS.showOtherBookmarks),
     historyLimit: clampInt(
       o.historyLimit,
       HISTORY_LIMIT_MIN,

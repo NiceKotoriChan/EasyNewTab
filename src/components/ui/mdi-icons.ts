@@ -1,6 +1,5 @@
 import type { Component } from "vue";
 import MdiAlertOutline from "~icons/mdi/alert-outline";
-import MdiArrowRight from "~icons/mdi/arrow-right";
 import MdiBookmarkOutline from "~icons/mdi/bookmark-outline";
 import MdiChevronDown from "~icons/mdi/chevron-down";
 import MdiChevronRight from "~icons/mdi/chevron-right";
@@ -20,7 +19,6 @@ import MdiWeb from "~icons/mdi/web";
 
 const ICONS = {
   alert: MdiAlertOutline,
-  "arrow-right": MdiArrowRight,
   bookmark: MdiBookmarkOutline,
   "chevron-down": MdiChevronDown,
   "chevron-right": MdiChevronRight,

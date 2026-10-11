@@ -6,6 +6,8 @@ const model = defineModel<string>({ required: true });
 
 defineProps<{ placeholder: string }>();
 
+const emit = defineEmits<{ submit: [] }>();
+
 const input = useTemplateRef<HTMLInputElement>("input");
 
 function onEscape(): void {
@@ -29,7 +31,9 @@ defineExpose({ focus: () => input.value?.focus({ preventScroll: true }) });
       autocomplete="off"
       autocorrect="off"
       autocapitalize="off"
+      enterkeyhint="go"
       spellcheck="false"
+      @keydown.enter.prevent="emit('submit')"
       @keydown.esc.prevent="onEscape"
     />
     <button
