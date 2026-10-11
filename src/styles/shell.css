@@ -20,15 +20,6 @@
   overflow: hidden;
 }
 
-.track.is-dock > .pane.is-side {
-  flex: none;
-}
-
-.track.is-dock > .pane.is-centre {
-  flex: 1;
-  min-width: 0;
-}
-
 .track.is-page {
   transition: transform var(--dur) var(--ease);
 }
@@ -36,4 +27,39 @@
 .track.is-page > .pane {
   flex: 0 0 100%;
   min-width: 0;
+}
+
+.splitpanes--vertical > .splitpanes__splitter {
+  position: relative;
+  flex: none;
+  width: var(--sash);
+  cursor: col-resize;
+}
+
+.splitpanes__splitter::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: var(--border);
+  transition:
+    background var(--dur) var(--ease),
+    width var(--dur) var(--ease);
+}
+
+.splitpanes__splitter:hover::after {
+  background: var(--accent);
+}
+
+.splitpanes--dragging .splitpanes__splitter::after {
+  width: 2px;
+  background: var(--accent);
+}
+
+.splitpanes__splitter:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }

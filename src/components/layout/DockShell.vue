@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { computed, useTemplateRef } from "vue";
+import { ref, useTemplateRef } from "vue";
+import { useElementSize } from "@vueuse/core";
+import {
+  Pane,
+  Splitpanes,
+  type SplitpanesResizePayload,
+  type SplitpanesResizedPayload,
+} from "splitpanes";
 import PanelView from "./PanelView.vue";
 import WelcomePane from "@/components/welcome/WelcomePane.vue";
 import { focusPanelSearch } from "@/composables/usePanelSearch";
@@ -9,10 +16,35 @@ import type { SideEdge } from "@/core/settings";
 
 const props = defineProps<{ left: SidePaneId; right: SidePaneId }>();
 
-const { widths, collapsed, resizing, toggle, expand, startResize } = useSidebar();
+const track = useTemplateRef<HTMLElement>("track");
+const { width: trackWidth } = useElementSize(track);
 
-const leftStyle = computed(() => ({ width: widths.value.left + "px" }));
-const rightStyle = computed(() => ({ width: widths.value.right + "px" }));
+const { collapsed, paneSizes, paneMax, toggle, expand, applyResize } =
+  useSidebar(trackWidth);
+
+const SPLITTER_SIDES = ["left", "right"] as const;
+const SIDE_PANES = { left: 0, right: 2 } as const;
+
+const dragging = ref<SideEdge | null>(null);
+
+function sideAt(index: number | undefined): SideEdge | undefined {
+  return index === 0 || index === 1 ? SPLITTER_SIDES[index] : undefined;
+}
+
+function onResize(payload: SplitpanesResizePayload): void {
+  dragging.value = sideAt(payload.index) ?? null;
+}
+
+function onResized(payload: SplitpanesResizedPayload): void {
+  const side = sideAt(payload.index);
+  dragging.value = null;
+  if (side === undefined) return;
+  applyResize(side, payload.panes[SIDE_PANES[side]]?.size ?? 0);
+}
+
+function sideVisible(side: SideEdge): boolean {
+  return !collapsed.value[side] || dragging.value === side;
+}
 
 function sideOf(panel: SidePaneId): SideEdge {
   return props.left === panel ? "left" : "right";
@@ -32,98 +64,40 @@ defineExpose<ShellHandle>({
 
 <template>
   <div class="stage">
-    <div class="track is-dock">
-      <div class="rail" />
-      <PanelView
-        v-show="!collapsed.left"
-        class="pane is-side"
-        :style="leftStyle"
-        :panel="props.left"
-      />
-      <div
-        class="splitter"
-        :class="{ 'is-active': resizing === 'left' }"
-        role="separator"
-        aria-orientation="vertical"
-        :aria-label="`Resize ${props.left} panel`"
-        title="Drag to resize"
-        @pointerdown="startResize($event, 'left')"
-      />
+    <div ref="track" class="track">
+      <Splitpanes
+        v-if="trackWidth > 0"
+        :push-other-panes="false"
+        :maximize-panes="false"
+        @resize="onResize"
+        @resized="onResized"
+      >
+        <Pane
+          :size="paneSizes.left"
+          :min-size="0"
+          :max-size="paneMax"
+        >
+          <div v-show="sideVisible('left')" class="pane">
+            <PanelView :panel="props.left" />
+          </div>
+        </Pane>
 
-      <div class="pane is-centre" data-panel="search">
-        <WelcomePane ref="welcome" />
-      </div>
+        <Pane :size="paneSizes.centre" :min-size="0" :max-size="100">
+          <div class="pane">
+            <WelcomePane ref="welcome" />
+          </div>
+        </Pane>
 
-      <div
-        class="splitter"
-        :class="{ 'is-active': resizing === 'right' }"
-        role="separator"
-        aria-orientation="vertical"
-        :aria-label="`Resize ${props.right} panel`"
-        title="Drag to resize"
-        @pointerdown="startResize($event, 'right')"
-      />
-      <PanelView
-        v-show="!collapsed.right"
-        class="pane is-side"
-        :style="rightStyle"
-        :panel="props.right"
-      />
-      <div class="rail" />
+        <Pane
+          :size="paneSizes.right"
+          :min-size="0"
+          :max-size="paneMax"
+        >
+          <div v-show="sideVisible('right')" class="pane">
+            <PanelView :panel="props.right" />
+          </div>
+        </Pane>
+      </Splitpanes>
     </div>
   </div>
 </template>
-
-<style scoped>
-.rail {
-  width: var(--gutter);
-  flex: none;
-  background: var(--inset);
-}
-
-.splitter {
-  position: relative;
-  width: 0;
-  flex: none;
-  cursor: col-resize;
-  z-index: 5;
-}
-
-.splitter::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 11px;
-  transform: translateX(-50%);
-  transition: background var(--dur) var(--ease);
-}
-
-.splitter::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 1px;
-  transform: translateX(-50%);
-  background: var(--border);
-  transition:
-    background var(--dur) var(--ease),
-    width var(--dur) var(--ease);
-}
-
-.splitter:hover::after {
-  background: var(--accent);
-}
-
-.splitter.is-active::after {
-  width: 2px;
-  background: var(--accent);
-}
-
-.splitter.is-active::before {
-  background: var(--accent-soft);
-}
-</style>

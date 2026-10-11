@@ -20,8 +20,8 @@ export function getFaviconUrl(url: string | undefined, size = 32): string {
   );
 }
 
-export function openUrl(url: string, openInNewTab: boolean | undefined): void {
-  if (openInNewTab === false) void chrome.tabs.update({ url });
+export function openUrl(url: string, openInNewTab: boolean): void {
+  if (!openInNewTab) void chrome.tabs.update({ url });
   else void chrome.tabs.create({ url });
 }
 

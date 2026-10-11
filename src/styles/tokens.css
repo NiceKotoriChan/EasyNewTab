@@ -26,7 +26,7 @@
   --icon-folder: var(--accent);
 
   --row-h: 28px;
-  --gutter: 24px;
+  --sash: 6px;
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -83,6 +83,5 @@
 @media (pointer: coarse) {
   :root {
     --row-h: 38px;
-    --gutter: 0px;
   }
 }

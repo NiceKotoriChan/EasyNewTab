@@ -28,7 +28,7 @@ export interface LayoutState {
 }
 
 const SIDEBAR_MIN = 180;
-const SIDEBAR_MAX = 480;
+export const SIDEBAR_MAX = 480;
 export const SIDEBAR_DEFAULT = 260;
 
 const SIDEBAR_COLLAPSE_AT = 110;
@@ -59,26 +59,25 @@ function clampInt(value: unknown, min: number, max: number, fallback: number) {
 
 export function normalizeSettings(raw: unknown): Settings {
   const o = (raw ?? {}) as Record<string, unknown>;
-  const legacy = typeof o.openInNewTab === "boolean" ? o.openInNewTab : undefined;
   return {
     searchEngine: isEngineId(o.searchEngine)
       ? (o.searchEngine as EngineId)
       : DEFAULT_SETTINGS.searchEngine,
     openBookmarksInNewTab: readBool(
       o.openBookmarksInNewTab,
-      legacy ?? DEFAULT_SETTINGS.openBookmarksInNewTab,
+      DEFAULT_SETTINGS.openBookmarksInNewTab,
     ),
     openSearchInNewTab: readBool(
       o.openSearchInNewTab,
-      legacy ?? DEFAULT_SETTINGS.openSearchInNewTab,
+      DEFAULT_SETTINGS.openSearchInNewTab,
     ),
     openHistoryInNewTab: readBool(
       o.openHistoryInNewTab,
-      legacy ?? DEFAULT_SETTINGS.openHistoryInNewTab,
+      DEFAULT_SETTINGS.openHistoryInNewTab,
     ),
     openTopSitesInNewTab: readBool(
       o.openTopSitesInNewTab,
-      legacy ?? DEFAULT_SETTINGS.openTopSitesInNewTab,
+      DEFAULT_SETTINGS.openTopSitesInNewTab,
     ),
     showOtherBookmarks: readBool(o.showOtherBookmarks, DEFAULT_SETTINGS.showOtherBookmarks),
     historyLimit: clampInt(
@@ -94,15 +93,11 @@ export function normalizeSettings(raw: unknown): Settings {
 }
 
 function readWidth(raw: unknown, side: SideEdge, fallback: number): number {
-  if (typeof raw === "number") {
-    return clampInt(raw, SIDEBAR_MIN, SIDEBAR_MAX, fallback);
-  }
   const o = (raw ?? {}) as Record<string, unknown>;
   return clampInt(o[side], SIDEBAR_MIN, SIDEBAR_MAX, fallback);
 }
 
 function readCollapsed(raw: unknown, side: SideEdge, fallback: boolean): boolean {
-  if (typeof raw === "boolean") return raw;
   const o = (raw ?? {}) as Record<string, unknown>;
   return typeof o[side] === "boolean" ? (o[side] as boolean) : fallback;
 }
@@ -121,35 +116,28 @@ export function normalizeLayout(raw: unknown): LayoutState {
   };
 }
 
-type SidebarDrag =
-  | { kind: "resize"; width: number }
-  | { kind: "collapse" }
-  | { kind: "expand"; width: number }
-  | { kind: "idle" };
+type SidebarDrag = { kind: "size"; width: number } | { kind: "collapse" };
 
-export function clampSidebarWidth(value: number): number {
+function clampSidebarWidth(value: number): number {
   return Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, Math.round(value)));
 }
 
-export function dragWidth(
-  startWidth: number,
-  startX: number,
-  clientX: number,
-  side: SideEdge,
-): number {
-  const delta = side === "right" ? startX - clientX : clientX - startX;
-  return startWidth + delta;
+export function pxToPercent(px: number, base: number): number {
+  if (base <= 0) return 0;
+  return (px / base) * 100;
+}
+
+export function percentToPx(percent: number, base: number): number {
+  if (base <= 0) return 0;
+  return (percent / 100) * base;
 }
 
 export function resolveSidebarDrag(
   pointerWidth: number,
   collapsed: boolean,
 ): SidebarDrag {
-  if (collapsed) {
-    return pointerWidth >= SIDEBAR_MIN
-      ? { kind: "expand", width: clampSidebarWidth(pointerWidth) }
-      : { kind: "idle" };
+  if (!collapsed && pointerWidth < SIDEBAR_COLLAPSE_AT) {
+    return { kind: "collapse" };
   }
-  if (pointerWidth < SIDEBAR_COLLAPSE_AT) return { kind: "collapse" };
-  return { kind: "resize", width: clampSidebarWidth(pointerWidth) };
+  return { kind: "size", width: clampSidebarWidth(pointerWidth) };
 }

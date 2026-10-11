@@ -19,7 +19,7 @@ interface RowDragData {
   [key: symbol]: unknown;
 }
 
-export interface RowHover {
+interface RowHover {
   position: DropPosition;
   rect: DOMRect;
 }

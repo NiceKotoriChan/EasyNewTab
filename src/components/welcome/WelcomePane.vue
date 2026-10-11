@@ -85,6 +85,10 @@ defineExpose({ focus: () => field.value?.focus() });
   flex: 6 1 0;
 }
 
+.welcome.is-compact {
+  padding-top: 20px;
+}
+
 .stack {
   flex: none;
   width: min(620px, 100%);

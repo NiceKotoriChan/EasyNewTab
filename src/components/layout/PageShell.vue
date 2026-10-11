@@ -35,11 +35,11 @@ defineExpose<ShellHandle>({
 <template>
   <div ref="stage" class="stage">
     <div class="track is-page" :style="trackStyle">
-      <PanelView class="pane is-side" :panel="props.left" />
-      <div class="pane is-centre" data-panel="search">
+      <PanelView class="pane" :panel="props.left" />
+      <div class="pane">
         <WelcomePane ref="welcome" />
       </div>
-      <PanelView class="pane is-side" :panel="props.right" />
+      <PanelView class="pane" :panel="props.right" />
     </div>
   </div>
 </template>

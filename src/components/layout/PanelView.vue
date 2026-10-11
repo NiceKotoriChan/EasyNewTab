@@ -13,5 +13,5 @@ const props = defineProps<{ panel: SidePaneId }>();
 </script>
 
 <template>
-  <component :is="PANES[props.panel]" :data-panel="props.panel" />
+  <component :is="PANES[props.panel]" />
 </template>

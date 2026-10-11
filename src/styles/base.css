@@ -84,9 +84,3 @@ input {
 .pane-empty.is-error {
   color: var(--danger);
 }
-
-body.is-resizing,
-body.is-resizing * {
-  cursor: col-resize !important;
-  user-select: none;
-}

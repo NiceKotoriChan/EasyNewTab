@@ -1,9 +1,11 @@
-import { ref, type Ref } from "vue";
+import { computed, ref, type ComputedRef, type Ref } from "vue";
 import {
-  dragWidth,
   normalizeLayout,
+  percentToPx,
+  pxToPercent,
   resolveSidebarDrag,
   SIDEBAR_DEFAULT,
+  SIDEBAR_MAX,
   type LayoutState,
   type SideCollapsed,
   type SideEdge,
@@ -25,7 +27,6 @@ const widths = ref<SideWidths>({
   right: SIDEBAR_DEFAULT,
 });
 const collapsed = ref<SideCollapsed>({ left: false, right: false });
-const resizing = ref<SideEdge | null>(null);
 let bootstrapped = false;
 
 function bootstrap(): void {
@@ -39,15 +40,41 @@ function bootstrap(): void {
     .catch((err) => console.warn("Failed to load layout:", err));
 }
 
-export function useSidebar(): {
-  widths: Ref<SideWidths>;
+interface PaneSizes {
+  left: number;
+  centre: number;
+  right: number;
+}
+
+export function useSidebar(baseWidth: Ref<number>): {
   collapsed: Ref<SideCollapsed>;
-  resizing: Ref<SideEdge | null>;
+  paneSizes: ComputedRef<PaneSizes>;
+  paneMax: ComputedRef<number>;
   toggle(): void;
   expand(side: SideEdge): void;
-  startResize(event: PointerEvent, side: SideEdge): void;
+  applyResize(side: SideEdge, percent: number): void;
 } {
   bootstrap();
+
+  const base = computed(() => baseWidth.value || 1);
+
+  const paneMax = computed(() =>
+    Math.min(100, pxToPercent(SIDEBAR_MAX, base.value)),
+  );
+
+  const paneSizes = computed<PaneSizes>(() => {
+    const left = collapsed.value.left
+      ? 0
+      : pxToPercent(widths.value.left, base.value);
+    const right = collapsed.value.right
+      ? 0
+      : pxToPercent(widths.value.right, base.value);
+    return {
+      left,
+      centre: Math.max(0, 100 - left - right),
+      right,
+    };
+  });
 
   function setCollapsed(side: SideEdge, value: boolean): void {
     collapsed.value = { ...collapsed.value, [side]: value };
@@ -65,46 +92,22 @@ export function useSidebar(): {
     void saveLayout({ sidebarCollapsed: collapsed.value });
   }
 
-  function startResize(event: PointerEvent, side: SideEdge): void {
-    event.preventDefault();
-    const startX = event.clientX;
-    const startWidth = collapsed.value[side] ? 0 : widths.value[side];
-    const target = event.currentTarget as HTMLElement;
-    target.setPointerCapture(event.pointerId);
-    resizing.value = side;
-    document.body.classList.add("is-resizing");
-
-    const onMove = (e: PointerEvent) => {
-      const drag = resolveSidebarDrag(
-        dragWidth(startWidth, startX, e.clientX, side),
-        collapsed.value[side],
-      );
-      if (drag.kind === "collapse") {
-        setCollapsed(side, true);
-        return;
-      }
-      if (drag.kind === "idle") return;
+  function applyResize(side: SideEdge, percent: number): void {
+    const drag = resolveSidebarDrag(
+      percentToPx(percent, base.value),
+      collapsed.value[side],
+    );
+    if (drag.kind === "collapse") {
+      setCollapsed(side, true);
+    } else {
       setCollapsed(side, false);
       widths.value = { ...widths.value, [side]: drag.width };
-    };
-
-    const onUp = () => {
-      target.removeEventListener("pointermove", onMove);
-      target.removeEventListener("pointerup", onUp);
-      target.removeEventListener("pointercancel", onUp);
-      target.releasePointerCapture?.(event.pointerId);
-      resizing.value = null;
-      document.body.classList.remove("is-resizing");
-      void saveLayout({
-        sidebarWidth: widths.value,
-        sidebarCollapsed: collapsed.value,
-      });
-    };
-
-    target.addEventListener("pointermove", onMove);
-    target.addEventListener("pointerup", onUp);
-    target.addEventListener("pointercancel", onUp);
+    }
+    void saveLayout({
+      sidebarWidth: widths.value,
+      sidebarCollapsed: collapsed.value,
+    });
   }
 
-  return { widths, collapsed, resizing, toggle, expand, startResize };
+  return { collapsed, paneSizes, paneMax, toggle, expand, applyResize };
 }
