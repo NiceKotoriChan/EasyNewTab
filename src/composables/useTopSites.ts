@@ -1,12 +1,6 @@
-// Most-visited sites for the welcome pane's shortcut row. Loaded once per page (a fresh
-// instance each new tab, so once-per-load is already as fresh as it gets).
 import { ref, type Ref } from "vue";
 import { selectTopSites, type TopSite } from "@/core/topSites";
 
-/**
- * An unavailable list is not an error worth showing: no history yet, incognito,
- * and a build without the permission all mean the same thing here — no row.
- */
 async function getTopSites() {
   try {
     return await chrome.topSites.get();
@@ -19,7 +13,6 @@ async function getTopSites() {
 const sites = ref<TopSite[]>([]);
 let bootstrapped = false;
 
-// Exposed as a seam so the render check can drive the empty case.
 async function reload(): Promise<void> {
   sites.value = selectTopSites(await getTopSites());
 }

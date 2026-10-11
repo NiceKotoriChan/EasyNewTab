@@ -1,19 +1,14 @@
-/** Side-column geometry: one width and one collapsed flag, shared by both dividers and persisted to
- *  `storage.local` — the width of a window should not follow the profile to another machine.
- *
- *  There is no collapse button: dragging a divider shut *is* the gesture, so this drag handler is
- *  also the collapse handler. */
 import { ref, type Ref } from "vue";
 import {
-  clampSidebarWidth,
   dragWidth,
   normalizeLayout,
   resolveSidebarDrag,
   SIDEBAR_DEFAULT,
   type LayoutState,
+  type SideCollapsed,
   type SideEdge,
+  type SideWidths,
 } from "@/core/settings";
-import { debounce } from "@/core/utils";
 
 async function loadLayout(): Promise<LayoutState> {
   const { layout } = await chrome.storage.local.get("layout");
@@ -25,77 +20,83 @@ async function saveLayout(patch: Partial<LayoutState>): Promise<void> {
   await chrome.storage.local.set({ layout: next });
 }
 
-const width = ref(SIDEBAR_DEFAULT);
-const collapsed = ref(false);
+const widths = ref<SideWidths>({
+  left: SIDEBAR_DEFAULT,
+  right: SIDEBAR_DEFAULT,
+});
+const collapsed = ref<SideCollapsed>({ left: false, right: false });
+const resizing = ref<SideEdge | null>(null);
 let bootstrapped = false;
-
-const persistWidth = debounce((value: number) => {
-  void saveLayout({ sidebarWidth: value });
-}, 200);
 
 function bootstrap(): void {
   if (bootstrapped) return;
   bootstrapped = true;
   void loadLayout()
     .then((layout) => {
-      width.value = layout.sidebarWidth;
+      widths.value = layout.sidebarWidth;
       collapsed.value = layout.sidebarCollapsed;
     })
     .catch((err) => console.warn("Failed to load layout:", err));
 }
 
 export function useSidebar(): {
-  width: Ref<number>;
-  collapsed: Ref<boolean>;
+  widths: Ref<SideWidths>;
+  collapsed: Ref<SideCollapsed>;
+  resizing: Ref<SideEdge | null>;
   toggle(): void;
-  setWidth(value: number): void;
+  expand(side: SideEdge): void;
   startResize(event: PointerEvent, side: SideEdge): void;
 } {
   bootstrap();
 
-  function setWidth(value: number): void {
-    width.value = clampSidebarWidth(value);
-    persistWidth(width.value);
+  function setCollapsed(side: SideEdge, value: boolean): void {
+    collapsed.value = { ...collapsed.value, [side]: value };
   }
 
   function toggle(): void {
-    collapsed.value = !collapsed.value;
+    const bothVisible = !collapsed.value.left && !collapsed.value.right;
+    collapsed.value = { left: bothVisible, right: bothVisible };
+    void saveLayout({ sidebarCollapsed: collapsed.value });
+  }
+
+  function expand(side: SideEdge): void {
+    if (!collapsed.value[side]) return;
+    setCollapsed(side, false);
     void saveLayout({ sidebarCollapsed: collapsed.value });
   }
 
   function startResize(event: PointerEvent, side: SideEdge): void {
     event.preventDefault();
     const startX = event.clientX;
-    // Collapsed, the divider hugs the window edge, so the width it describes
-    // starts at zero and the drag is measured from where the pointer went down.
-    const startWidth = collapsed.value ? 0 : width.value;
+    const startWidth = collapsed.value[side] ? 0 : widths.value[side];
     const target = event.currentTarget as HTMLElement;
     target.setPointerCapture(event.pointerId);
+    resizing.value = side;
+    document.body.classList.add("is-resizing");
 
     const onMove = (e: PointerEvent) => {
       const drag = resolveSidebarDrag(
         dragWidth(startWidth, startX, e.clientX, side),
-        collapsed.value,
+        collapsed.value[side],
       );
       if (drag.kind === "collapse") {
-        collapsed.value = true;
+        setCollapsed(side, true);
         return;
       }
       if (drag.kind === "idle") return;
-      collapsed.value = false;
-      width.value = drag.width;
+      setCollapsed(side, false);
+      widths.value = { ...widths.value, [side]: drag.width };
     };
 
-    // The listeners live on the handle, and the handle therefore has to outlive
-    // the state change it causes: a divider that unmounted when the columns
-    // collapsed would take its own listeners with it, leaving the drag stuck.
     const onUp = () => {
       target.removeEventListener("pointermove", onMove);
       target.removeEventListener("pointerup", onUp);
       target.removeEventListener("pointercancel", onUp);
       target.releasePointerCapture?.(event.pointerId);
+      resizing.value = null;
+      document.body.classList.remove("is-resizing");
       void saveLayout({
-        sidebarWidth: width.value,
+        sidebarWidth: widths.value,
         sidebarCollapsed: collapsed.value,
       });
     };
@@ -105,5 +106,5 @@ export function useSidebar(): {
     target.addEventListener("pointercancel", onUp);
   }
 
-  return { width, collapsed, toggle, setWidth, startResize };
+  return { widths, collapsed, resizing, toggle, expand, startResize };
 }

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// Search input + engine switcher + suggestion dropdown. All state lives in `useSearch()`.
 import { computed, onMounted, ref } from "vue";
 import EngineSwitcher from "./EngineSwitcher.vue";
 import { useSearch } from "@/composables/useSearch";
@@ -29,7 +28,6 @@ const { query, suggestions, activeIndex, canSuggest, move, commit, pick } =
 const input = ref<HTMLInputElement | null>(null);
 const focused = ref(false);
 
-// No dropdown for engines without a suggestion endpoint (GitHub).
 const dropdownOpen = computed(
   () => focused.value && canSuggest.value && query.value.trim().length > 0,
 );
@@ -46,14 +44,12 @@ function onKeydown(event: KeyboardEvent): void {
       break;
     case "Enter":
       event.preventDefault();
-      // Keep the shell from also acting on this keystroke.
       event.stopPropagation();
       commit();
       emit("submitted");
       break;
     case "Escape":
       event.preventDefault();
-      // Escape unwinds a level at a time (clear, then hand focus back); propagation always stops here so the shell's Escape doesn't also fire.
       event.stopPropagation();
       if (query.value) clear();
       else emit("escape");
@@ -68,7 +64,6 @@ function choose(index: number): void {
 
 function clear(): void {
   query.value = "";
-  // The `useSearch` watcher empties suggestions and resets activeIndex.
   input.value?.focus();
 }
 
@@ -76,8 +71,6 @@ onMounted(() => {
   if (props.autofocus) input.value?.focus();
 });
 
-// Exposed because the field is the page's `typing` state: `/` focuses it, Escape blurs it
-// (otherwise no bare-key binding is reachable on a page that autofocuses the box on mount).
 defineExpose({
   focus: () => input.value?.focus(),
   blur: () => input.value?.blur(),
@@ -127,7 +120,6 @@ defineExpose({
             @mouseenter="activeIndex = index"
           >
             <Icon name="arrow-right" :size="13" class="s-icon" />
-            <!-- eslint-disable-next-line vue/no-v-html -->
             <span class="s-text" v-html="highlightMatch(item, query)" />
           </button>
         </li>
@@ -142,12 +134,10 @@ defineExpose({
 .search-field {
   display: flex;
   flex-direction: column;
-  /* 20px keeps the engine row clear of the hero box while staying inside the shortcut tiles' 32px rhythm. */
   gap: 20px;
   width: 100%;
 }
 
-/* Anchors the dropdown to the input so the engine row below stays outside its positioning context. */
 .field-wrap {
   position: relative;
 }
@@ -208,7 +198,6 @@ defineExpose({
   font-size: 13px;
 }
 
-/* The wrapper already draws the focus ring. */
 .input:focus-visible {
   box-shadow: none;
 }

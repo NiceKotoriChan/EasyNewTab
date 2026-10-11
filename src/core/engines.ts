@@ -1,13 +1,7 @@
-/**
- * Search engine table + suggestion fetching + URL detection. Engines are fixed (not user-editable):
- * GitHub has no public suggestion endpoint, so its `suggestUrl` is omitted.
- */
-
 interface SearchEngine {
   readonly id: string;
   readonly name: string;
   readonly searchUrl: string;
-  /** Absent for engines with no public suggestion endpoint. */
   readonly suggestUrl?: (query: string) => string;
   readonly parseResponse?: (data: unknown) => string[];
 }
@@ -95,7 +89,6 @@ export const ENGINES = {
     id: "github",
     name: "GitHub",
     searchUrl: "https://github.com/search?q=",
-    // No public suggestion API — jump-to-search only.
   },
 } satisfies Record<string, SearchEngine>;
 
@@ -118,15 +111,10 @@ export function buildSearchUrl(engineId: EngineId, query: string): string {
   return engine.searchUrl + encodeURIComponent(query);
 }
 
-/** True when the engine can return suggestions at all. */
 export function supportsSuggestions(engineId: EngineId): boolean {
   return typeof getEngine(engineId).suggestUrl === "function";
 }
 
-/**
- * Loose URL detector: "has a dot, no spaces, optional scheme". Deliberately
- * permissive so `example.com/x?y=1` navigates instead of searching.
- */
 export function looksLikeUrl(str: string): boolean {
   return (
     /^(https?:\/\/)?([\w-]+\.)+[\w-]+(\/[\w\-./?%&=+#]*)?$/.test(str) &&
@@ -139,7 +127,6 @@ export function normalizeUrl(str: string): string {
   return /^https?:\/\//i.test(str) ? str : "https://" + str;
 }
 
-// Never caches; an aborted fetch (the next keystroke) is reported as an empty list, not an error.
 export async function fetchSuggestions(
   query: string,
   engineId: EngineId,

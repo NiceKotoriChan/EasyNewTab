@@ -1,10 +1,3 @@
-/**
- * History state — shared by the sidebar list and the panel switch.
- *
- * The cap is the user's (`Settings.historyLimit`, 100 by default), because `chrome.history.search`
- * will happily answer with a whole profile's worth of rows. `startTime: 0` and `text: ""` are both
- * deliberate: the API's own default is the last 24 hours, and `""` is what means "match everything".
- */
 import { computed, ref, type ComputedRef, type Ref } from "vue";
 import { filterHistory, type HistoryItemLike } from "@/core/history";
 import { normalizeSettings } from "@/core/settings";
@@ -33,19 +26,12 @@ function onHistoryChanged(cb: () => void): () => void {
   };
 }
 
-/**
- * The cap is a setting, so a settings write is the one thing this store watches for — and watching
- * storage is what it does instead of holding a `watch` on the ref, which is a no-op when the module
- * is first evaluated during a server render.
- */
 function onSettingsChanged(cb: () => void): () => void {
   const listener = (
     changes: Record<string, chrome.storage.StorageChange>,
     areaName: string,
   ) => {
     if (areaName !== "sync" || !changes.settings) return;
-    // Compared against the cap already on screen rather than applied blindly: this page hears
-    // about *every* settings write, and re-querying because the docking side moved is unasked-for work.
     const next = normalizeSettings(changes.settings.newValue).historyLimit;
     if (next !== shownLimit) cb();
   };
@@ -59,18 +45,14 @@ const items = ref<HistoryItemLike[]>([]);
 const loading = ref(true);
 const failed = ref(false);
 
-/** The panel's own filter text — module-scope, for the same reason the bookmark tree's folds are. */
 const searchQuery = ref("");
 
 const visibleItems = computed(() => filterHistory(items.value, searchQuery.value));
 
-/** Derived from the query rather than from "did anything get dropped": an empty list and an empty
- *  result set are different sentences, and only the query can tell them apart. */
 const searchActive = computed(() => searchQuery.value.trim().length > 0);
 
 let bootstrapped = false;
 
-// The cap the on-screen rows were fetched with, or null before the first fetch.
 let shownLimit: number | null = null;
 
 const scheduleReload = debounce(() => void reload(), 300);
@@ -78,9 +60,6 @@ const scheduleReload = debounce(() => void reload(), 300);
 async function reload(): Promise<void> {
   loading.value = true;
   try {
-    // The cap lives in storage and this run starts while that read is still in flight, so without
-    // the wait the first list would be built from the default — a profile asking for 300 rows would
-    // show 100 of them until something else happened to reload it.
     await whenReady();
     const limit = settings.value.historyLimit;
     items.value = await searchHistory(limit);
@@ -98,7 +77,6 @@ function bootstrap(): void {
   if (bootstrapped) return;
   bootstrapped = true;
   void reload();
-  // Visits and removals arrive in bursts — a bulk delete fires once per URL.
   onHistoryChanged(scheduleReload);
   onSettingsChanged(scheduleReload);
 }

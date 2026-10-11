@@ -1,31 +1,13 @@
 <script setup lang="ts">
-/**
- * Settings page — the only place preferences can be changed; the new tab page has no gear button.
- * Every control writes on change: no Save button. `lastError` drives the alert strip, without which
- * a write that did not land looks like one that did.
- */
 import Icon from "../components/ui/Icon.vue";
-import type { IconName } from "../components/ui/mdi-icons";
 import { useSettings } from "../composables/useSettings";
 import { usePlatform } from "../composables/usePlatform";
 import { SHORTCUTS } from "./shortcuts";
-import type { PanelMode } from "@/core/panels";
 import { HISTORY_LIMIT_MAX, HISTORY_LIMIT_MIN } from "@/core/settings";
 
-// `icon` is `IconName`, not `string`: a typo would render an empty box nobody notices.
-const MODES: Array<{
-  id: PanelMode;
-  label: string;
-  icon: IconName;
-}> = [
-  { id: "docked", label: "Docked", icon: "layout-docked" },
-  { id: "hover", label: "On hover", icon: "layout-overlay" },
-];
-
 const { settings, ready, lastError, update } = useSettings();
-const { isCompact, isTouch } = usePlatform();
+const { isTouch } = usePlatform();
 
-/** The stepper's nudge — the same 50 as the floor, so the whole 50–1000 range is twenty presses. */
 const HISTORY_STEP = 50;
 
 function onOpenInNewTabChange(event: Event): void {
@@ -38,8 +20,6 @@ function onShowOtherBookmarksChange(event: Event): void {
   });
 }
 
-// A switch rather than two named buttons: the choice has no third state to describe and the two
-// sides of the strip are the two sides of the control.
 function onSideOrderChange(event: Event): void {
   void update({
     sideOrder: (event.target as HTMLInputElement).checked
@@ -48,13 +28,6 @@ function onSideOrderChange(event: Event): void {
   });
 }
 
-function setPanelMode(id: PanelMode): void {
-  if (id === settings.value.panelMode) return;
-  void update({ panelMode: id });
-}
-
-/** The buttons land on the same bounds `normalizeSettings` clamps to, so neither can write a value
- *  storage would refuse — and with no text field there is no half-typed number to reconcile. */
 function stepHistoryLimit(direction: 1 | -1): void {
   void update({ historyLimit: settings.value.historyLimit + direction * HISTORY_STEP });
 }
@@ -66,8 +39,6 @@ function stepHistoryLimit(direction: 1 | -1): void {
       <div v-if="!ready" class="pane-empty">Loading…</div>
 
       <template v-else>
-        <!-- A failed write is already rolled back, so the controls above are showing the
-             truth. This only has to say why. -->
         <div v-if="lastError" class="failed" role="alert">
           <Icon name="alert" :size="15" />
           <div class="failed-text">
@@ -117,15 +88,11 @@ function stepHistoryLimit(direction: 1 | -1): void {
               </div>
             </div>
 
-            <!-- The only row in General that is not a yes/no. It is also the whole bound
-                 on the history panel: the list asks Chrome for exactly this many entries. -->
             <div class="row">
               <div class="row-text">
                 <div class="row-label">History entries</div>
               </div>
               <div class="row-control">
-                <!-- Increase on the left, decrease on the right — flagged because the
-                     `[− value +]` order is the more common one, and this row is not that. -->
                 <div class="stepper" role="group" aria-label="History entries">
                   <button
                     type="button"
@@ -152,8 +119,6 @@ function stepHistoryLimit(direction: 1 | -1): void {
           </div>
         </section>
 
-        <!-- Its own section because it is the one setting about the shell rather than
-             about bookmarks. -->
         <section class="panel">
           <div class="panel-head">
             <span class="panel-mark"><Icon name="layout-docked" :size="15" /></span>
@@ -161,8 +126,6 @@ function stepHistoryLimit(direction: 1 | -1): void {
           </div>
 
           <div class="group">
-            <!-- On every window: each of the three shapes reads the side order, and on a phone it
-                 is the only thing that decides where a swipe lands. -->
             <div class="row">
               <div class="row-text">
                 <div class="row-label">Bookmarks on the left</div>
@@ -174,30 +137,6 @@ function stepHistoryLimit(direction: 1 | -1): void {
                   :checked="settings.sideOrder === 'bookmarks-left'"
                   @change="onSideOrderChange"
                 />
-              </div>
-            </div>
-
-            <!-- Only the choice between the two shell shapes needs columns, and a narrow window has
-                 none — so this is the row that drops, not the section. -->
-            <div v-if="!isCompact" class="row">
-              <div class="row-text">
-                <div class="row-label">Panel layout</div>
-              </div>
-              <div class="row-control">
-                <div class="seg" role="group" aria-label="Panel layout">
-                  <button
-                    v-for="option in MODES"
-                    :key="option.id"
-                    type="button"
-                    class="seg-item"
-                    :class="{ 'is-active': settings.panelMode === option.id }"
-                    :aria-pressed="settings.panelMode === option.id"
-                    @click="setPanelMode(option.id)"
-                  >
-                    <Icon :name="option.icon" :size="14" />
-                    <span>{{ option.label }}</span>
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -225,20 +164,16 @@ function stepHistoryLimit(direction: 1 | -1): void {
 .options {
   display: flex;
   justify-content: center;
-  /* `dvh`, like the new tab shell, so a retractable toolbar does not put the last row under itself. */
   height: 100dvh;
-  padding: var(--gutter);
   background: var(--app-bg);
 }
 
-/* One capped column, no panel drawn round it — the page is the panel. */
 .content {
   width: 100%;
   max-width: 660px;
   padding: 26px 30px 30px;
 }
 
-/* A rule separates the sections, with air on both sides. */
 .panel + .panel {
   margin-top: 22px;
   padding-top: 22px;
@@ -271,15 +206,12 @@ function stepHistoryLimit(direction: 1 | -1): void {
   color: var(--text);
 }
 
-/* One outlined container per section: the outline says "these belong together". Square,
-   like every other region — the radius is reserved for the controls inside it. */
 .group {
   background: var(--surface);
   border: 1px solid var(--border);
   overflow: hidden;
 }
 
-/* Only rendered when a write failed, so it is allowed to be loud. */
 .failed {
   display: flex;
   gap: 10px;
@@ -349,7 +281,6 @@ function stepHistoryLimit(direction: 1 | -1): void {
   flex: none;
 }
 
-/* The checkbox is only the state; the visible control is the track and knob on top of it. */
 .checkbox {
   position: relative;
   flex: none;
@@ -388,9 +319,6 @@ function stepHistoryLimit(direction: 1 | -1): void {
   transform: translateX(15px);
 }
 
-/* Stepper: the same "inset track, raised pill" language as the segmented control, so a row set by a
-   number reads like a row set by a choice. The value is tabular and centred, so it does not shuffle
-   sideways as the buttons move it. */
 .stepper {
   display: inline-flex;
   align-items: center;
@@ -433,38 +361,6 @@ function stepHistoryLimit(direction: 1 | -1): void {
   text-align: center;
 }
 
-/* Two-option segmented control: the same "inset track + raised pill" language the engine row uses. */
-.seg {
-  display: inline-flex;
-  gap: 3px;
-  padding: 3px;
-  background: var(--inset);
-  border-radius: var(--radius-md);
-}
-
-.seg-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 30px;
-  padding: 0 14px;
-  border-radius: var(--radius-sm);
-  color: var(--text-dim);
-  font-size: 12.5px;
-}
-
-.seg-item:hover {
-  color: var(--text);
-}
-
-.seg-item.is-active {
-  background: var(--surface);
-  color: var(--accent);
-  font-weight: 500;
-  box-shadow: var(--shadow-xs);
-}
-
-/* A key column and a description column, so every description starts at the same x. */
 .shortcut {
   display: grid;
   grid-template-columns: 78px 1fr;
@@ -484,7 +380,6 @@ function stepHistoryLimit(direction: 1 | -1): void {
   background: var(--hover-bg);
 }
 
-/* Keycap: sized to its own label, one extra pixel of bottom border so it reads as something you press. */
 kbd {
   justify-self: start;
   min-width: 30px;
@@ -501,8 +396,6 @@ kbd {
   box-shadow: var(--shadow-xs);
 }
 
-/* Narrow, the column is most of the window; the label may wrap but the controls keep their size — a
-   switch that shrank with the window would be hardest to hit on the device with least room to aim. */
 @media (max-width: 720px) {
   .content {
     padding: 18px 16px 20px;
@@ -511,10 +404,6 @@ kbd {
   .row {
     gap: 14px;
     padding: 12px 13px;
-  }
-
-  .seg-item {
-    padding: 0 11px;
   }
 
   .shortcut {

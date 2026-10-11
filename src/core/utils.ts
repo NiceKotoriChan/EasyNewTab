@@ -1,6 +1,3 @@
-/** Shared, dependency-free helpers. Nothing here touches the DOM or the Vue runtime so
- *  the module stays trivially testable. */
-
 export function debounce<F extends (...args: never[]) => void>(
   fn: F,
   delay: number,
@@ -12,7 +9,6 @@ export function debounce<F extends (...args: never[]) => void>(
   };
 }
 
-/** Escape a string for safe interpolation into an innerHTML fragment. */
 function escapeHtml(str: string): string {
   return str
     .replace(/&/g, "&amp;")
@@ -22,7 +18,6 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#39;");
 }
 
-/** Wrap occurrences of `query` in `<mark>`. Returns escaped HTML. */
 export function highlightMatch(text: string, query: string): string {
   const escaped = escapeHtml(text);
   const q = query.trim();
@@ -34,8 +29,6 @@ export function highlightMatch(text: string, query: string): string {
   );
 }
 
-/** Favicon URL for a page. Uses Chromium's internal `_favicon` route, which resolves
- *  from the local favicon cache — no network request, no third party. */
 export function getFaviconUrl(url: string | undefined, size = 32): string {
   if (!url) return "";
   return (
@@ -47,17 +40,11 @@ export function getFaviconUrl(url: string | undefined, size = 32): string {
   );
 }
 
-/** Open a page from a click, honouring the `openInNewTab` preference. Unset counts as *on*: the
- *  preference arrives from storage after the first paint, and a click landing before it does should
- *  not navigate this page away from itself. Every place a click can open a link goes through here,
- *  so the rule has one home. */
 export function openUrl(url: string, openInNewTab: boolean | undefined): void {
   if (openInNewTab === false) void chrome.tabs.update({ url });
   else void chrome.tabs.create({ url });
 }
 
-// Hardcoded: the extension ships no translations, so a browser locale would only make
-// output unassertable. Every Intl call passes this explicitly.
 export const UI_LOCALE = "en-US";
 
 export function formatTime(date: Date): string {
@@ -66,8 +53,6 @@ export function formatTime(date: Date): string {
   return `${h}:${m}`;
 }
 
-/** The welcome pane's date line: `Friday, September 25` — no year, since this line is
- *  glanced at dozens of times a day and the year would be constant noise. */
 export function formatDate(date: Date): string {
   return date.toLocaleDateString(UI_LOCALE, {
     weekday: "long",
@@ -76,8 +61,6 @@ export function formatDate(date: Date): string {
   });
 }
 
-/** Position a fixed-position menu at (x, y), clamped so it never leaves the viewport.
- *  Returns the top-left corner to apply. */
 export function clampMenuPosition(
   x: number,
   y: number,

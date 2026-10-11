@@ -1,7 +1,4 @@
 <script setup lang="ts">
-// History sidebar panel — filter bar over one flat list, newest first. One click opens an entry in a
-// new tab; opening is the row's only action (no delete, no menu). How much it lists is the shell's
-// `historyLimit`.
 import { onBeforeUnmount, useTemplateRef } from "vue";
 import Favicon from "./ui/Favicon.vue";
 import PanelSearch from "./ui/PanelSearch.vue";
@@ -15,13 +12,11 @@ const { items, visibleItems, searchActive, searchQuery, loading, failed } =
   useHistory();
 const { settings } = useSettings();
 
-// `h` is the way in; the panel is the one that registers where that lands.
 const search = useTemplateRef<InstanceType<typeof PanelSearch>>("search");
 const stopSearch = registerPanelSearch("history", () => search.value?.focus());
 
 onBeforeUnmount(stopSearch);
 
-// `url` is optional in the history API's types, so this guard is real.
 function openItem(url?: string): void {
   if (url) openUrl(url, settings.value.openInNewTab);
 }
@@ -41,7 +36,6 @@ function openItem(url?: string): void {
       <div v-else-if="items.length === 0" class="pane-empty">
         No history yet
       </div>
-      <!-- After "you have none", for the same reason as the bookmark panel. -->
       <div
         v-else-if="searchActive && visibleItems.length === 0"
         class="pane-empty"
@@ -84,13 +78,10 @@ function openItem(url?: string): void {
   gap: 8px;
   height: var(--row-h);
   margin: 0 6px;
-  /* Both sides get the same inset so the row is balanced and the timestamp column lines up down the list. */
   padding: 0 8px;
   border-radius: var(--radius-sm);
-  /* A click opens the entry. */
   cursor: pointer;
   user-select: none;
-  /* A long list is the normal case (the cap is a setting away); `content-visibility: auto` skips off-screen work so the panel opens instantly, and the intrinsic size keeps the scrollbar exact. */
   content-visibility: auto;
   contain-intrinsic-size: auto var(--row-h);
 }
@@ -102,7 +93,6 @@ function openItem(url?: string): void {
 .label {
   flex: 1;
   min-width: 0;
-  /* Kept at 14px to match the bookmark tree's row label (same column); the timestamp stays 11px so it reads as metadata, not competing content. */
   font-size: 14px;
   white-space: nowrap;
   overflow: hidden;

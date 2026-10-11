@@ -1,17 +1,9 @@
-/** Touch long press → the anchor a context menu opens from: a touchscreen has no right button, so
- *  every list needs a second way in.
- *
- *  Only `pointerdown` is bound to the element; the rest of the gesture is listened for on `window`,
- *  because the finger routinely leaves the row it started on. Two events must be swallowed or the
- *  press fires a second, wrong action: Chromium's own `contextmenu`, and the `click` the finger
- *  coming up produces — which on a bookmark row means "open". */
 import {
   isFingerPointer,
   LONG_PRESS_MS,
   movedBeyondSlop,
 } from "@/core/gestures";
 
-/** How long a click stays unwelcome after the menu opened, in case none comes. */
 const CLICK_GUARD_MS = 700;
 
 export function useLongPress(
@@ -19,8 +11,6 @@ export function useLongPress(
 ): { onPointerdown: (event: PointerEvent) => void } {
   function onPointerdown(event: PointerEvent): void {
     if (!isFingerPointer(event.pointerType)) return;
-    // A press on a text field belongs to the platform: on a touchscreen it is how Paste is reached,
-    // which is why the shell leaves the browser's own menu alone there.
     if ((event.target as HTMLElement | null)?.closest?.("input, textarea, [contenteditable]")) {
       return;
     }
@@ -28,8 +18,6 @@ export function useLongPress(
     const from = { x: event.clientX, y: event.clientY };
     let settled = false;
 
-    // Armed for the whole gesture rather than only until the menu opens: the platform's long-press
-    // menu arrives around the same moment, and it is the *second* one that would double up.
     const swallowContextMenu = (e: Event): void => {
       e.preventDefault();
       e.stopPropagation();
@@ -44,7 +32,6 @@ export function useLongPress(
       if (movedBeyondSlop(from, { x: e.clientX, y: e.clientY })) cancel();
     };
 
-    // The finger left or wandered: nothing this press started should survive.
     const cancel = (): void => {
       if (settled) return;
       settled = true;

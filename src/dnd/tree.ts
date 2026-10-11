@@ -1,4 +1,3 @@
-// Bookmark-tree drag & drop via @atlaskit/pragmatic-drag-and-drop: offsettable preview, inner-list autoscroll, and the nested drop-target stack HTML5 DnD can't do.
 import {
   draggable,
   dropTargetForElements,
@@ -11,10 +10,8 @@ import { computeDropPosition, type DropPosition, type NodeKind } from "@/core/bo
 
 export type Cleanup = () => void;
 
-// Dwell on a collapsed folder to spring it open, so a drop into a nested folder is one gesture.
 const DWELL_MS = 600;
 
-// Index signature required: the library payloads are an open bag of `unknown`.
 interface RowDragData {
   id: string;
   kind: NodeKind;
@@ -24,21 +21,16 @@ interface RowDragData {
 
 export interface RowHover {
   position: DropPosition;
-  /** The row's box, so the caller can draw the indicator without re-querying. */
   rect: DOMRect;
 }
 
-// Read lazily: the node behind a row is replaced on reload, the registration outlives it.
 export interface RowRegistration {
   data: () => RowDragData;
-  // False for the dragged row and its subtree.
   canDrop: () => boolean;
-  // Only a collapsed folder with children is worth spring-loading open.
   canExpand: () => boolean;
   onHover: (hover: RowHover) => void;
   onLeave: () => void;
   onDwell: () => void;
-  // Checked before spring-loading: releasing the mouse first would open a folder nobody is dragging into.
   isDragging?: () => boolean;
   onDragStart: () => void;
   onDragEnd: () => void;
@@ -65,7 +57,6 @@ function zoneAt(element: Element, kind: NodeKind, clientY: number): RowHover {
   };
 }
 
-// The drop-target stack is innermost-first; without this check both a row and its parent would claim the indicator.
 function isInnermost(
   element: Element,
   dropTargets: readonly { element: Element }[],
@@ -73,7 +64,6 @@ function isInnermost(
   return dropTargets[0]?.element === element;
 }
 
-// Each row is draggable and droppable: the tree never wants a one-way row.
 export function wireRow(el: HTMLElement, reg: RowRegistration): Cleanup {
   let dwell: ReturnType<typeof setTimeout> | null = null;
 
@@ -90,23 +80,19 @@ export function wireRow(el: HTMLElement, reg: RowRegistration): Cleanup {
       getInitialData: reg.data,
 
       onGenerateDragPreview({ nativeSetDragImage }) {
-        // Null where the browser forbids a custom preview; the default bitmap is fine.
         if (!nativeSetDragImage) return;
 
         setCustomNativeDragPreview({
           nativeSetDragImage,
-          // Offset in from the left and vertically centred; the default anchors top-left to the pointer.
           getOffset: ({ container }) => ({
             x: 16,
             y: container.getBoundingClientRect().height / 2,
           }),
           render: ({ container }) => {
-            // Clone rather than rebuild, so the preview keeps the row's depth, icon and favicon.
             const ghost = el.cloneNode(true) as HTMLElement;
             ghost.classList.remove("dragging");
             ghost.classList.add("drag-ghost");
             ghost.removeAttribute("data-node-id");
-            // `.row` stretches inside the sidebar; alone it would stretch to the page width.
             ghost.style.margin = "0";
             ghost.style.width = `${el.getBoundingClientRect().width}px`;
             container.appendChild(ghost);
@@ -150,15 +136,12 @@ export function wireRow(el: HTMLElement, reg: RowRegistration): Cleanup {
 }
 
 interface DragWatchOptions {
-  /** The scrollable list, for telling "the empty area" from "outside the panel". */
   container: () => HTMLElement | null;
   onMove: (dragId: string, targetId: string, position: DropPosition) => void;
-  /** Dropped in the blank space below the last row. */
   onAppend: (dragId: string) => void;
   onFinish: () => void;
 }
 
-// Only the blank space *under* the tree: a gap between rows is a near-miss, not an "append".
 function isBelowLastRow(container: HTMLElement | null, clientY: number): boolean {
   if (!container) return false;
   const box = container.getBoundingClientRect();
@@ -168,7 +151,6 @@ function isBelowLastRow(container: HTMLElement | null, clientY: number): boolean
   return last ? clientY > last.getBoundingClientRect().bottom : false;
 }
 
-// One watcher per tree, not an onDrop per row: nested rows both fire onDrop in undocumented order, and the geometry is recomputed because onDrag is throttled.
 function watchDrag(opts: DragWatchOptions): Cleanup {
   return monitorForElements({
     onDrop({ source, location }) {
@@ -194,7 +176,6 @@ function watchDrag(opts: DragWatchOptions): Cleanup {
   });
 }
 
-// Pin to vertical: `.scroll` is `overflow-x: hidden`, so horizontal autoscroll would be a no-op that still engages.
 function makeTreeAutoScroll(el: HTMLElement): Cleanup {
   return autoScrollForElements({
     element: el,

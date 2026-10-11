@@ -1,6 +1,4 @@
 <script setup lang="ts">
-// Paged: one panel fills the screen and the strip of three slides sideways under it. Only a narrow
-// window takes this shape — and only there does the swipe have a screen to move to.
 import { computed, useTemplateRef } from "vue";
 import PanelView from "./PanelView.vue";
 import WelcomePane from "@/components/welcome/WelcomePane.vue";
@@ -11,10 +9,8 @@ import { CENTRE_SLOT, type PanelId, type ShellHandle, type SidePaneId } from "@/
 const props = defineProps<{ left: SidePaneId; right: SidePaneId }>();
 const PAGE_COUNT = 3;
 
-/** The three screens, left to right — the same order the swipe walks through. */
 const slots = computed<PanelId[]>(() => [props.left, "search", props.right]);
 
-/** Which screen is showing. A new tab opens on the search box. */
 const stage = useTemplateRef<HTMLElement>("stage");
 const { slot } = usePageSwipe(stage, PAGE_COUNT, CENTRE_SLOT);
 

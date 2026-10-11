@@ -1,7 +1,4 @@
 <script setup lang="ts">
-// The new tab page: an outer frame, one shell inside it, and the keyboard and the context menu hung
-// off the frame. Which shell that is comes down to the window and one setting; how the three panels
-// are arranged is the shell's business, and the frame never branches on it.
 import {
   computed,
   onBeforeUnmount,
@@ -11,7 +8,6 @@ import {
 } from "vue";
 import ContextMenu from "@/components/ui/ContextMenu.vue";
 import DockShell from "@/components/layout/DockShell.vue";
-import HoverShell from "@/components/layout/HoverShell.vue";
 import PageShell from "@/components/layout/PageShell.vue";
 import { useSettings } from "@/composables/useSettings";
 import { usePlatform } from "@/composables/usePlatform";
@@ -27,24 +23,20 @@ import {
 
 const SHELLS: Record<ShellShape, Component> = {
   dock: DockShell,
-  hover: HoverShell,
   page: PageShell,
 };
 
 const { settings } = useSettings();
 const { isCompact, isTouch } = usePlatform();
 
-// Instantiated here rather than in the panels, so the data is already in flight when a panel mounts.
 useBookmarks();
 useHistory();
 
-const shape = computed(() => shellShape(isCompact.value, settings.value.panelMode));
+const shape = computed(() => shellShape(isCompact.value));
 const sides = computed(() => panelSides(settings.value.sideOrder));
 
-/** Whichever shell is mounted answers these, so every shortcut ends in one call. */
 const shell = useTemplateRef<ShellHandle>("shell");
 
-// The native menu is never useful here, except on a touchscreen text field where it's the only route to Paste.
 function suppressNativeMenu(event: Event): void {
   const target = event.target as HTMLElement | null;
   if (isTouch.value && target?.closest?.("input, textarea, [contenteditable]")) {
@@ -120,9 +112,7 @@ onBeforeUnmount(() => {
 .shell {
   display: flex;
   flex-direction: column;
-  /* `dvh` so a mobile browser's retractable toolbar does not push the strip under the bottom edge. */
   height: 100dvh;
-  padding: var(--gutter);
   background: var(--app-bg);
 }
 </style>

@@ -1,5 +1,3 @@
-// One app-wide menu, one instance rendered by App.vue with global dismissal listeners.
-// `open` takes coordinates (not a MouseEvent): a right-click carries them, a long press doesn't.
 import { ref, type Ref } from "vue";
 import type { MenuItem } from "@/core/menus";
 

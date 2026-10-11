@@ -1,10 +1,3 @@
-/**
- * Bookmark tree state — shared by the sidebar tree and the panel switch.
- *
- * Every mutation reloads from the API (debounced) rather than patching the DOM: that is what lets
- * expansion live in `expandedIds` instead of CSS classes, so a rebuild cannot lose it. "Other
- * bookmarks" is a view over `rawTree`, so hiding it costs no extra `getTree()` round-trip.
- */
 import { computed, ref, type ComputedRef, type Ref } from "vue";
 import {
   computeMoveTarget,
@@ -20,7 +13,6 @@ import {
 import { debounce } from "@/core/utils";
 import { useSettings } from "./useSettings";
 
-/** Subscribe to every bookmark mutation. Callers must debounce — a bulk import fires dozens. */
 function onBookmarksChanged(cb: () => void): () => void {
   const events = [
     chrome.bookmarks.onCreated,
@@ -36,7 +28,6 @@ function onBookmarksChanged(cb: () => void): () => void {
   };
 }
 
-/** Children of a folder, or `[]` if the folder is gone. */
 async function getChildren(id: string): Promise<BookmarkNode[]> {
   try {
     return await chrome.bookmarks.getChildren(id);
@@ -45,7 +36,6 @@ async function getChildren(id: string): Promise<BookmarkNode[]> {
   }
 }
 
-/** Raw `getTree()` result — one synthetic root whose children are the folders. */
 const rawTree = ref<BookmarkNode[]>([]);
 const loading = ref(true);
 const failed = ref(false);
@@ -53,7 +43,6 @@ const expandedIds = ref<Set<string>>(new Set());
 
 let bootstrapped = false;
 
-// Subscribed once at module scope: `tree` is a shared computed, so it outlives any one component.
 const { settings } = useSettings();
 const showOtherBookmarks = computed(() => settings.value.showOtherBookmarks);
 
@@ -63,7 +52,6 @@ const tree = computed(() =>
 
 const scheduleReload = debounce(() => void reload(), 200);
 
-// Flat id→node lookup, rebuilt once per tree change.
 const index = computed(() => {
   const map = new Map<string, BookmarkNode>();
   const walk = (nodes: BookmarkNode[]) => {
@@ -78,13 +66,10 @@ const index = computed(() => {
 
 const rootFolderId = computed(() => pickRootFolderId(rawTree.value));
 
-/** The panel's own filter text. Module-scope like `expandedIds`, so a trip to the other panel or a
- *  change of shell shape does not lose what is being looked for. */
 const searchQuery = ref("");
 
 const search = computed(() => searchBookmarks(tree.value, searchQuery.value));
 
-/** What the sidebar draws: the tree, or a running query's slice of it. */
 const visibleTree = computed(() =>
   search.value.active ? search.value.nodes : tree.value,
 );
@@ -98,7 +83,6 @@ async function reload(): Promise<void> {
     const isFirstLoad = rawTree.value.length === 0;
     rawTree.value = raw;
     if (isFirstLoad) {
-      // Open the top-level folders so the first run is not a wall of collapsed rows.
       expandedIds.value = new Set(topLevelNodes(raw).map((n) => n.id));
     }    failed.value = false;
   } catch (err) {
@@ -146,8 +130,6 @@ export function useBookmarks(): {
 
   function isExpanded(id: string): boolean {
     if (expandedIds.value.has(id)) return true;
-    // A running search also opens the folders on the path to its hits — read from `reveal` rather
-    // than written into `expandedIds`, so clearing the query gives back the folds the user had.
     return search.value.active && search.value.reveal.has(id);
   }
 
@@ -167,11 +149,8 @@ export function useBookmarks(): {
     const targetNode = findNode(targetId);
     if (!dragNode || !targetNode || dragId === targetId) return;
 
-    // Never drop a folder into its own subtree — it would detach the branch.
     if (isFolder(dragNode) && subtreeContains(dragNode, targetId)) return;
 
-    // Where the node sits is deliberately not passed on: the index `chrome.bookmarks.move` wants is
-    // measured against the list as it stands, and Chromium corrects a same-folder move itself.
     const siblings =
       position === "inside" ? [] : await getChildren(targetNode.parentId ?? "");
 
@@ -189,15 +168,10 @@ export function useBookmarks(): {
     await reload();
   }
 
-  /**
-   * Send a node to the end of the first top-level folder — what a drop in the blank space means.
-   * `index` is omitted on purpose: the API reads a missing index as "append".
-   */
   async function moveToEnd(dragId: string): Promise<void> {
     const parentId = rootFolderId.value;
     const dragNode = findNode(dragId);
     if (!parentId || !dragNode) return;
-    // The first top-level folder may itself sit inside the node being dragged.
     if (isFolder(dragNode) && subtreeContains(dragNode, parentId)) return;
 
     const siblings = await getChildren(parentId);

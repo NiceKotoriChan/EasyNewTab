@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// The app's only context menu, rendered once in App.vue and driven by `useContextMenu()`. Global dismissal listeners are registered a single time for the whole page.
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { clampMenuPosition } from "@/core/utils";
 import { useContextMenu } from "@/composables/useContextMenu";
@@ -14,7 +13,6 @@ watch(menu, async (state) => {
   await nextTick();
   const rect = el.value?.getBoundingClientRect();
   if (!rect) return;
-  // Measure first, then clamp — menu size depends on its items.
   pos.value = clampMenuPosition(
     state.x,
     state.y,
@@ -123,7 +121,6 @@ function pick(action: string): void {
   color: var(--danger);
 }
 
-/* A finger is not a cursor — a long-press menu must be hit accurately, so rows grow for touch. */
 @media (pointer: coarse) {
   .ctx-item {
     padding: 10px 12px;

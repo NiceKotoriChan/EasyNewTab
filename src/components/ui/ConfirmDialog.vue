@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// Modal confirmation for a destructive action. Focus lands on the confirm button; Escape cancels.
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 const props = withDefaults(
@@ -147,8 +146,6 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown, true));
   filter: brightness(1.08);
 }
 
-/* A destructive confirmation is the worst place in the app for a mis-tap, and
-   the two buttons sit a finger's width apart. */
 @media (pointer: coarse) {
   .btn {
     height: 42px;

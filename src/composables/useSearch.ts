@@ -1,7 +1,3 @@
-/** Search state machine for the main search box, driven by the welcome pane's hero
- *  box — `/` is the only way to reach that box when it is not already in front. State
- *  is per-instance: it belongs to whichever field called it. */
-
 import { computed, onScopeDispose, ref, watch, type ComputedRef, type Ref } from "vue";
 import {
   buildSearchUrl,
@@ -23,7 +19,6 @@ interface UseSearch {
   engine: ComputedRef<EngineId>;
   canSuggest: ComputedRef<boolean>;
   move: (delta: number) => void;
-  /** Open the highlighted suggestion, or run the raw query. */
   commit: () => void;
   pick: (index: number) => void;
   reset: () => void;
@@ -65,13 +60,12 @@ export function useSearch(): UseSearch {
     const signal = controller.signal;
     loading.value = true;
     const list = await fetchSuggestions(q, engine.value, signal);
-    if (signal.aborted) return; // a newer keystroke already won
+    if (signal.aborted) return;
     loading.value = false;
     suggestions.value = list;
     activeIndex.value = -1;
   }
 
-  // Only the query drives the debounce.
   watch(query, (value) => {
     cancelPending();
     if (!value.trim()) {
@@ -82,11 +76,6 @@ export function useSearch(): UseSearch {
     timer = window.setTimeout(() => void request(value), SUGGEST_DEBOUNCE_MS);
   });
 
-  // The engine can change from the switcher under the search box, from the
-  // status bar, or from the options page — none of which know about this
-  // composable. Watching settings here is what keeps the dropdown honest for
-  // all three, and it stays strictly local: nothing outside this composable
-  // is invalidated, so bookmark/history views are untouched.
   watch(engine, () => {
     if (query.value.trim()) void request(query.value);
     else {
@@ -102,7 +91,6 @@ export function useSearch(): UseSearch {
   }
 
   function openNewTab(url: string): void {
-    // Always a new tab: the new tab page itself must stay put (the sidebar preference doesn't reach here).
     void chrome.tabs.create({ url });
   }
 

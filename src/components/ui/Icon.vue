@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// One icon, by semantic name (see `mdi-icons.ts`). The single `<svg>` carries the call site's classes; size is width/height (filled glyphs, not stroke). `aria-hidden` is set here so an unlabelled svg doesn't get announced twice.
 import { computed } from "vue";
 import { resolveIcon, type IconName } from "./mdi-icons";
 

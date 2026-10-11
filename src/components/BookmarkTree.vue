@@ -1,7 +1,4 @@
 <script setup lang="ts">
-// Bookmark sidebar panel: filter bar, the indented list of visible rows, drag & drop. One click is
-// the whole gesture; one listener covers right-click + long-press for the whole list (a finger may
-// not stay on its row). Row height is a fixed `--row-h` so the drop-zone maths stays predictable.
 import {
   computed,
   onBeforeUnmount,
@@ -58,24 +55,19 @@ const { open: openMenu } = useContextMenu();
 const container = ref<HTMLElement | null>(null);
 const pendingDelete = ref<BookmarkNode | null>(null);
 
-// `b` is the way in; the panel is the one that registers where that lands.
 const search = useTemplateRef<InstanceType<typeof PanelSearch>>("search");
 const stopSearch = registerPanelSearch("bookmarks", () => search.value?.focus());
 
-// The id in flight — feeds `blockedIds`; the row's own drag styling is the `.dragging` class.
 const dragId = ref<string | null>(null);
 
 interface DropTarget {
   id: string;
   position: DropPosition;
-  /** The row's box, so the indicator line can be placed without re-querying. */
   rect: DOMRect;
 }
 
-// Row under the pointer; null means no valid drop target right now.
 const dropTarget = ref<DropTarget | null>(null);
 
-// Recomputed from the live tree, so a node deleted mid-drag simply stops being blocked.
 const blockedIds = computed(() => {
   const id = dragId.value;
   return dragBlockedIds(id ? (findNode(id) ?? null) : null);
@@ -89,19 +81,12 @@ interface Row {
   open: boolean;
 }
 
-/**
- * The visible tree flattened to what the DOM needs: one entry per row, with its depth. Drawn as an
- * indented list rather than nested groups — nothing a row does depends on its parent, and one
- * element per node is what lets a drag registration live exactly as long as its row.
- */
 const rows = computed(() => {
   const out: Row[] = [];
   const walk = (nodes: readonly BookmarkNode[], depth: number): void => {
     for (const node of nodes) {
       const folder = isFolder(node);
       const kids = (node.children?.length ?? 0) > 0;
-      // Guarded by `kids`: an empty folder still lands in `expandedIds` on first load but has
-      // nothing to reveal.
       const open = folder && kids && isExpanded(node.id);
       out.push({ node, depth, folder, kids, open });
       if (open) walk(node.children ?? [], depth + 1);
@@ -117,9 +102,6 @@ function isDropInside(id: string): boolean {
   );
 }
 
-/**
- * Answered from the live tree by id, so a registration outlives the node object it was made for.
- */
 function registrationFor(id: string): RowRegistration {
   return {
     data: () => {
@@ -127,7 +109,6 @@ function registrationFor(id: string): RowRegistration {
       return { id, kind: node && isFolder(node) ? "folder" : "bookmark" };
     },
     canDrop: () => !blockedIds.value.has(id),
-    // Only a collapsed folder with children is worth spring-loading open.
     canExpand: () => {
       const node = findNode(id);
       return (
@@ -137,13 +118,10 @@ function registrationFor(id: string): RowRegistration {
         !isExpanded(id)
       );
     },
-    // Answered here: the row can't tell if the drag it's hovered by is still alive.
     isDragging: () => dragId.value !== null,
     onHover: (hover) => {
       dropTarget.value = { id, position: hover.position, rect: hover.rect };
     },
-    // Identity-guarded: nested rows also receive "leave" when entering a child, so clearing blindly
-    // would flicker the indicator.
     onLeave: () => {
       if (dropTarget.value?.id === id) dropTarget.value = null;
     },
@@ -160,9 +138,6 @@ function registrationFor(id: string): RowRegistration {
 
 const cleanups = new WeakMap<HTMLElement, Cleanup>();
 
-// Hand each row to the drag adapter for as long as its element lives. Not a `:ref` callback: Vue
-// re-invokes one on *every* patch of the vnode, and these rows re-patch on every hover — each call
-// would tear down a registration that is mid-drag.
 const vRowDrag: Directive<HTMLElement, string> = {
   mounted: (el, { value: id }) => {
     cleanups.set(el, wireRow(el, registrationFor(id)));
@@ -173,8 +148,6 @@ const vRowDrag: Directive<HTMLElement, string> = {
   },
 };
 
-// Drawn in the scroller's content space (not the viewport) so it scrolls with the row, and this
-// computed need not re-run on scroll.
 const indicator = computed(() => {
   const target = dropTarget.value;
   const el = container.value;
@@ -182,7 +155,6 @@ const indicator = computed(() => {
   const box = el.getBoundingClientRect();
   return {
     left: target.rect.left - box.left + el.scrollLeft,
-    // `- 1` centres the 2px line on the seam.
     top:
       (target.position === "before" ? target.rect.top : target.rect.bottom) -
       box.top +
@@ -192,7 +164,6 @@ const indicator = computed(() => {
   };
 });
 
-// One click does the whole job; nothing is selected, so the search box stays.
 function activate(node: BookmarkNode): void {
   if (resolveRowActivation(node) === "toggle") {
     toggleExpanded(node.id);
@@ -201,14 +172,11 @@ function activate(node: BookmarkNode): void {
   if (node.url) openUrl(node.url, settings.value.openInNewTab);
 }
 
-// Anchored by coordinates: long-press has no MouseEvent, only right-click does.
 function nodeContextMenu(x: number, y: number, node: BookmarkNode): void {
-  // Only a folder has a menu; a bookmark right-click opens nothing, not the blank-space menu.
   if (!isFolder(node)) return;
   openMenu(x, y, folderMenu(), (action) => void handleNodeAction(action, node));
 }
 
-// The blank space under the tree — where a top-level folder is made.
 function blankMenu(x: number, y: number): void {
   const parentId = rootFolderId.value;
   if (!parentId) return;
@@ -223,12 +191,10 @@ function blankMenu(x: number, y: number): void {
 }
 
 function onBlankContextMenu(event: MouseEvent): void {
-  // Gaps between rows are still blank space and open this menu (rows stop the event themselves).
   if ((event.target as HTMLElement).closest(".row")) return;
   blankMenu(event.clientX, event.clientY);
 }
 
-// Touch entry: ask the element under the finger for its `data-node-id`; anything else is blank space.
 const longPress = useLongPress((x, y) => {
   const row = document
     .elementFromPoint(x, y)
@@ -277,7 +243,6 @@ onMounted(() => {
     container: () => container.value,
     onMove: (draggedId, targetId, position) =>
       void moveNode(draggedId, targetId, position),
-    // Blank space under the last row: append to the top-level folder.
     onAppend: (draggedId) => void moveToEnd(draggedId),
     onFinish: () => {
       dragId.value = null;
@@ -308,8 +273,6 @@ onBeforeUnmount(() => {
         Failed to load bookmarks
       </div>
       <div v-else-if="tree.length === 0" class="pane-empty">No bookmarks yet</div>
-      <!-- Checked after "you have none": the difference between that and "none match" is the whole
-           reason the box is worth having. -->
       <div
         v-else-if="searchActive && visibleTree.length === 0"
         class="pane-empty"
@@ -317,7 +280,6 @@ onBeforeUnmount(() => {
         No matches
       </div>
       <template v-else>
-        <!-- Keyed by id, so a row keeps its element — and its drag registration — across a reload. -->
         <div
           v-for="row in rows"
           :key="row.node.id"
@@ -351,7 +313,6 @@ onBeforeUnmount(() => {
           </button>
           <span v-else class="twisty is-empty" />
 
-          <!-- Solid when shut, hollow when open. -->
           <Icon
             v-if="row.folder"
             class="lead is-folder"
@@ -362,8 +323,6 @@ onBeforeUnmount(() => {
 
           <span class="label">{{ row.node.title || row.node.url }}</span>
 
-          <!-- The row's only delete. Folders get no inline delete — removing a branch shouldn't be
-               one stray click away. -->
           <button
             v-if="!row.folder"
             type="button"
@@ -377,7 +336,6 @@ onBeforeUnmount(() => {
         </div>
       </template>
 
-      <!-- Kept inside the scroller so it scrolls with the rows it points at. -->
       <div
         v-if="indicator"
         class="drop-line"
@@ -416,7 +374,6 @@ onBeforeUnmount(() => {
   padding-bottom: 8px;
 }
 
-/* Positioned in the scroller's content space, so it scrolls with its row. */
 .drop-line {
   position: absolute;
   z-index: 2;
@@ -434,7 +391,6 @@ onBeforeUnmount(() => {
   margin: 0 6px;
   padding-right: 4px;
   border-radius: var(--radius-sm);
-  /* A click does something on every row — opens a bookmark, folds a folder. */
   cursor: pointer;
   color: var(--text);
   user-select: none;
@@ -444,7 +400,6 @@ onBeforeUnmount(() => {
   background: var(--hover-bg);
 }
 
-/* Going *into* the folder is a different outcome from the line between rows, so it's a full-row fill — a hairline was too easy to miss. */
 .row.is-drop-inside {
   background: var(--accent-soft);
   color: var(--selection-fg);
@@ -456,7 +411,6 @@ onBeforeUnmount(() => {
   color: inherit;
 }
 
-/* Refuses the drop: the dragged node itself, or somewhere inside it. The cursor echoes `canDrop()` returning false. */
 .row.is-blocked {
   opacity: 0.4;
 }
@@ -491,7 +445,6 @@ onBeforeUnmount(() => {
   flex: none;
 }
 
-/* The one tinted glyph in the app (see `--icon-folder`); it returns to `inherit` on a drop-inside row, where the row's own colour is the signal. */
 .lead.is-folder {
   color: var(--icon-folder);
 }
@@ -499,7 +452,6 @@ onBeforeUnmount(() => {
 .label {
   flex: 1;
   min-width: 0;
-  /* 14px to match the history panel's row label; the two panels share a column, so a differing size reads as a bug. */
   font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
@@ -525,7 +477,6 @@ onBeforeUnmount(() => {
   color: var(--danger);
 }
 
-/* A cursor reveals the button on hover; a finger has no hover, so on touch it's simply always there. */
 @media (pointer: coarse) {
   .remove {
     display: grid;
@@ -534,7 +485,6 @@ onBeforeUnmount(() => {
 </style>
 
 <style>
-/* A clone of the row, appended to `body`, outside any scoped subtree — so it reads as a thing being carried, not a row in a list. */
 .drag-ghost {
   background: var(--surface);
   border: 1px solid var(--border-strong);

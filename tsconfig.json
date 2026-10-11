@@ -15,8 +15,6 @@
     "isolatedModules": true,
     "skipLibCheck": true,
     "noEmit": true,
-    // Inside `core/` relative imports carry their `.ts` extension. Vite does not
-    // care either way, but this flag is what keeps that convention legal.
     "allowImportingTsExtensions": true,
     "jsx": "preserve",
     "baseUrl": ".",
